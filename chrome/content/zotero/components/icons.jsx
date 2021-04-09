@@ -189,7 +189,7 @@ let domElementCache = {};
  * @param {String} icon
  * @returns {Element}
  */
-module.exports.getDomElement = function (icon) {
+module.exports.getDOMElement = function (icon) {
 	if (domElementCache[icon]) return domElementCache[icon].cloneNode(true);
 	if (!module.exports[icon]) {
 		Zotero.debug(`Attempting to get non-existant icon ${icon}`);
