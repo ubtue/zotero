@@ -3142,6 +3142,7 @@ var ItemTree = class ItemTree extends LibraryTree {
 		const columns = this._getColumns();
 		for (let i = 0; i < columns.length; i++) {
 			const column = columns[i];
+			if (column.inMenu === false) continue;
 			let menuitem = doc.createElementNS(ns, 'menuitem');
 			menuitem.setAttribute('type', 'checkbox');
 			menuitem.setAttribute('label', Zotero.Intl.strings[column.label]);
