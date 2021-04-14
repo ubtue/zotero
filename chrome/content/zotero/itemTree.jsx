@@ -3039,13 +3039,23 @@ var ItemTree = class ItemTree extends LibraryTree {
 			var unsuppress = this.selection.selectEventsSuppressed = true;
 		}
 
+		let focusedSet = false;
+		var toggleSelect = (function (itemID) {
+			if (!focusedSet) {
+				this.selection.select(this._rowMap[itemID]);
+				focusedSet = true;
+			}
+			else {
+				this.selection.toggleSelect(this._rowMap[itemID]);
+			}
+		}).bind(this);
 		try {
 			for (let i = 0; i < selection.length; i++) {
 				if (this._rowMap[selection[i]] != null) {
-					this.selection.toggleSelect(this._rowMap[selection[i]]);
+					toggleSelect(selection[i]);
 				}
 				// Try the parent
-				else if (expandCollapsedParents) {
+				else {
 					var item = Zotero.Items.get(selection[i]);
 					if (!item) {
 						continue;
@@ -3057,9 +3067,15 @@ var ItemTree = class ItemTree extends LibraryTree {
 					}
 
 					if (this._rowMap[parent] != null) {
-						await this._closeContainer(this._rowMap[parent]);
-						await this.toggleOpenState(this._rowMap[parent]);
-						this.selection.toggleSelect(this._rowMap[selection[i]]);
+						if (expandCollapsedParents) {
+							await this._closeContainer(this._rowMap[parent]);
+							await this.toggleOpenState(this._rowMap[parent]);
+							toggleSelect(selection[i]);
+						}
+						else {
+							!this.selection.isSelected(this._rowMap[parent]) &&
+								toggleSelect(parent);
+						}
 					}
 				}
 			}
