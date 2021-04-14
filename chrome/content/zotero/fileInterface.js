@@ -24,7 +24,7 @@
 */
 
 Components.utils.import("resource://gre/modules/osfile.jsm")
-import FilePicker from 'zotero/filePicker';
+import FilePicker from 'zotero/modules/filePicker';
 
 /****Zotero_File_Exporter****
  **
