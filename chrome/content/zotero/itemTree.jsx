@@ -318,7 +318,8 @@ var ItemTree = class ItemTree extends LibraryTree {
 		return this._itemTreeLoadingDeferred.promise;
 	}
 	
-	async setItemsPaneMessage(message) {
+	async setItemsPaneMessage(message, lock=false) {
+		if (this._locked) return;
 		if (typeof message == 'string') {
 			let messageParts = message.split("\n\n");
 			message = messageParts.map(part => `<p>${part}</p>`).join('');
@@ -328,6 +329,7 @@ var ItemTree = class ItemTree extends LibraryTree {
 		}
 		const shouldRerender = this._itemsPaneMessage != message;
 		this._itemsPaneMessage = message;
+		this._locked = lock;
 		return shouldRerender && new Promise(resolve => this.forceUpdate(resolve));
 	}
 	
@@ -1156,6 +1158,7 @@ var ItemTree = class ItemTree extends LibraryTree {
 	}
 	
 	async changeCollectionTreeRow(collectionTreeRow) {
+		if (this._locked) return;
 		Zotero.debug(`itemTree.changeCollectionTreeRow(): ${collectionTreeRow.id}`);
 		this.selection.selectEventsSuppressed = true;
 		this.collectionTreeRow = collectionTreeRow;
@@ -1624,6 +1627,7 @@ var ItemTree = class ItemTree extends LibraryTree {
 	}
 
 	async setFilter(type, data) {
+		if (this._locked) return;
 		switch (type) {
 			case 'search':
 				this.collectionTreeRow.setSearch(data);
@@ -1634,7 +1638,7 @@ var ItemTree = class ItemTree extends LibraryTree {
 			default:
 				throw ('Invalid filter type in setFilter');
 		}
-		await this.refreshAndMaintainSelection()
+		await this.refreshAndMaintainSelection();
 	};
 
 	ensureRowsAreVisible(indices) {
