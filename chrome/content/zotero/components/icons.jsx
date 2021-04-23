@@ -35,8 +35,9 @@ function i(name, svgOrSrc, hasHiDPI=true) {
 				// of this function
 				let finalSrc = svgOrSrc;
 				if (hasHiDPI && window.devicePixelRatio >= 1.25) {
+					let parts = svgOrSrc.split('.');
 					parts[parts.length - 2] = parts[parts.length - 2] + '@2x';
-					finalSrc = parts.join('.')
+					finalSrc = parts.join('.');
 					hasHiDPI = false;
 				}
 				if (!("style" in props)) props.style = {};
