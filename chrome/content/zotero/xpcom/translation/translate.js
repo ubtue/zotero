@@ -852,11 +852,11 @@ Zotero.Translate.Sandbox = {
     // Search functions with multiple translators
     "SearchMultiple":{
         /**
-         * @borrows Zotero.Translate.Sandbox.Web._selectItem as this._selectItem
+         * @borrows Zotero.Translate.Sandbox.Web.selectItems as this.selectItem
          */
         "selectItems":function(translate, items, callback) {
 
-            Zotero.Translate.Sandbox.Web._selectItems(translate, items, callback);
+            Zotero.Translate.Sandbox.Web.selectItems(translate, items, callback);
 
         }
 
@@ -940,7 +940,7 @@ Zotero.Translate.Base.prototype = {
 	 *
 	 * @param {String} type Type of handler to register. Legal values are:
 	 * select
-	 *   valid: web
+	 *   valid: web, searchmultiple
 	 *   called: when the user needs to select from a list of available items
 	 *   passed: an associative array in the form id => text
 	 *   returns: a numerically indexed array of ids, as extracted from the passed
@@ -2715,11 +2715,8 @@ Zotero.Translate.SearchMultiple.prototype = new Zotero.Translate.Base();
 Zotero.Translate.SearchMultiple.prototype.type = "searchmultiple";
 Zotero.Translate.SearchMultiple.prototype._entryFunctionSuffix = "SearchMultiple";
 Zotero.Translate.SearchMultiple.prototype.Sandbox = Zotero.Translate.Sandbox._inheritFromBase(Zotero.Translate.Sandbox.SearchMultiple);
-Zotero.Translate.SearchMultiple.prototype.ERROR_NO_RESULTS = "No items returned from any translator";
-
-
-Zotero.Translate.SearchMultiple.prototype.setCookieSandbox = Zotero.Translate.Search.prototype.setCookieSandbox;
-
+Zotero.Translate.SearchMultiple.prototype.ERROR_NO_RESULTS = "No items returned from any searchMultiple translator";
+Zotero.Translate.SearchMultiple.prototype.setCookieSandbox = Zotero.Translate.Web.prototype.setCookieSandbox;
 Zotero.Translate.SearchMultiple.prototype.setSearch = function(searchmultiple) {
 	this.searchmultiple = searchmultiple;
 }
@@ -2729,8 +2726,8 @@ Zotero.Translate.SearchMultiple.prototype.setIdentifier = Zotero.Translate.Searc
 Zotero.Translate.SearchMultiple.prototype.getTranslators = function() {
     return Zotero.Translate.Base.prototype.getTranslators.call(this, true);
 }
-
-Zotero.Translate.SearchMultiple.prototype.complete = Zotero.Translate.Search.prototype.complete;
+Zotero.Translate.SearchMultiple.prototype.translate = Zotero.Translate.Web.prototype.translate;
+Zotero.Translate.SearchMultiple.prototype.complete = Zotero.Translate.Web.prototype.complete;
 
 Zotero.Translate.SearchMultiple.prototype._getParameters = function() {
     return [this.searchmultiple];
@@ -2739,7 +2736,6 @@ Zotero.Translate.SearchMultiple.prototype._getParameters = function() {
 Zotero.Translate.SearchMultiple.prototype._getSandboxLocation = Zotero.Translate.Search.prototype._getSandboxLocation;
 
 Zotero.Translate.SearchMultiple.prototype._prepareTranslation = Zotero.Translate.Search.prototype._prepareTranslation;
-
 
 /**
  * IO-related functions
