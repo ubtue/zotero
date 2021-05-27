@@ -610,7 +610,6 @@ Zotero.Utilities.Internal = {
 	 *                                 force links to open in new windows, pass with
 	 *                                 .shiftKey = true. If not provided, the actual event will
 	 *                                 be used instead.
-	 *                                 .callback - Function to call after launching URL
 	 */
 	updateHTMLInXUL: function (elem, options) {
 		options = options || {};
@@ -621,9 +620,6 @@ Zotero.Utilities.Internal = {
 			a.setAttribute('tooltiptext', href);
 			a.onclick = function (event) {
 				Zotero.launchURL(href);
-				if (options.callback) {
-					options.callback();
-				}
 				return false;
 			};
 		}
@@ -999,27 +995,9 @@ Zotero.Utilities.Internal = {
 			let [_, originalField, value] = parts;
 
 			let key = this._normalizeExtraKey(originalField);
-
-			value = value.trim();
-			// Skip empty values
-			if (value === "") {
-				return [null, null];
-			}
-			return [key, value];
-		};
-		
-		// Extract item type from 'type:' lines
-		lines = lines.filter((line) => {
-			let [key, value] = getKeyAndValue(line);
-			
-			if (!key
-					|| key != 'type'
-					|| skipKeys.has(key)
-					// 1) Ignore 'type: note' and 'type: attachment'
-					// 2) Ignore 'article' until we have a Preprint item type
-					//    (https://github.com/zotero/translators/pull/2248#discussion_r546428184)
-					|| ['note', 'attachment', 'article'].includes(value)) {
-				return true;
+			if (skipKeys.has(key)) {
+				keepLines.push(line);
+				continue;
 			}
 			value = value.trim();
 
