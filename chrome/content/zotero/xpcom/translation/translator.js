@@ -24,7 +24,6 @@
 */
 
 // Enumeration of types of translators
-//var TRANSLATOR_TYPES = {"import":1, "export":2, "web":4, "search":8, "searchmultiple":16};
 var TRANSLATOR_TYPES = {"import":1, "export":2, "web":4, "search":8, "searchmultiple":16};
 
 // Properties required for every translator
