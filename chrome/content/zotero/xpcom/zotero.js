@@ -228,17 +228,21 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			var version = yield deferred.promise;
 		}
 		Zotero.version = version;
-		Zotero.isDevBuild = Zotero.version.includes('beta') || Zotero.version.includes('SOURCE');
+		Zotero.isDevBuild = Zotero.version.includes('beta')
+			|| Zotero.version.includes('dev')
+			|| Zotero.version.includes('SOURCE');
+		Zotero.isSourceBuild = Zotero.version.includes('SOURCE');
 		
 		// OS platform
 		var win = Components.classes["@mozilla.org/appshell/appShellService;1"]
 			   .getService(Components.interfaces.nsIAppShellService)
 			   .hiddenDOMWindow;
 		this.platform = win.navigator.platform;
-		this.isMac = (this.platform.substr(0, 3) == "Mac");
+		this.isMac = this.platform.substr(0, 3) == "Mac";
 		this.isWin = (this.platform.substr(0, 3) == "Win");
 		this.isLinux = (this.platform.substr(0, 5) == "Linux");
 		this.oscpu = win.navigator.oscpu;
+		this.isBigSurOrLater = this.isMac && !/Mac OS X 10.([1-9]|1[0-5])/.test(win.navigator.oscpu);
 		
 		// Browser
 		Zotero.browser = "g";
@@ -255,6 +259,8 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 		if (!_checkExecutableLocation()) {
 			return;
 		}
+		
+		Zotero.isPDFBuild = Zotero.Prefs.get('beta.zotero6');
 		
 		try {
 			yield Zotero.DataDirectory.init();
@@ -718,6 +724,7 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			yield Zotero.Groups.init();
 			yield Zotero.Relations.init();
 			yield Zotero.Retractions.init();
+			yield Zotero.NoteBackups.init();
 			
 			// Migrate fields from Extra that can be moved to item fields after a schema update
 			yield Zotero.Schema.migrateExtraFields();
@@ -750,7 +757,9 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 		catch (e) {
 			Zotero.logError(e);
 			if (!Zotero.startupError) {
-				Zotero.startupError = Zotero.getString('startupError') + "\n\n" + (e.stack || e);
+				Zotero.startupError = Zotero.getString('startupError', Zotero.appName) + "\n\n"
+					+ Zotero.getString('db.integrityCheck.reportInForums') + "\n\n"
+					+ (e.stack || e);
 			}
 			return false;
 		}
@@ -806,7 +815,9 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			}
 			else {
 				let stack = e.stack ? Zotero.Utilities.Internal.filterStack(e.stack) : null;
-				Zotero.startupError = Zotero.getString('startupError') + "\n\n" + (stack || e);
+				Zotero.startupError = Zotero.getString('startupError', Zotero.appName) + "\n\n"
+					+ Zotero.getString('db.integrityCheck.reportInForums') + "\n\n"
+					+ (stack || e);
 			}
 			
 			Zotero.debug(e.toString(), 1);
@@ -1440,6 +1451,8 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 	 * @return	void
 	 */
 	this.showZoteroPaneProgressMeter = function (msg, determinate, icon, modalOnly) {
+		const HTML_NS = "http://www.w3.org/1999/xhtml"
+		
 		// If msg is undefined, keep any existing message. If false/null/"", clear.
 		// The message is also cleared when the meters are hidden.
 		_progressMessage = msg = (msg === undefined ? _progressMessage : msg) || "";
@@ -1474,17 +1487,15 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			let id = 'zotero-pane-progressmeter';
 			let progressMeter = doc.getElementById(id);
 			if (!progressMeter) {
-				progressMeter = doc.createElement('progressmeter');
+				progressMeter = doc.createElementNS(HTML_NS, 'progress');
 				progressMeter.id = id;
 			}
-			progressMeter.setAttribute('mode', 'undetermined');
 			if (determinate) {
-				progressMeter.mode = 'determined';
-				progressMeter.value = 0;
+				progressMeter.setAttribute('value', 0);
 				progressMeter.max = 1000;
 			}
 			else {
-				progressMeter.mode = 'undetermined';
+				progressMeter.removeAttribute('value');
 			}
 			container.appendChild(progressMeter);
 			
@@ -1514,13 +1525,13 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 		}
 		for (let pm of _progressMeters) {
 			if (percentage !== null) {
-				if (pm.mode == 'undetermined') {
+				if (!pm.hasAttribute('value')) {
 					pm.max = 1000;
-					pm.mode = 'determined';
 				}
-				pm.value = percentage;
-			} else if(pm.mode === 'determined') {
-				pm.mode = 'undetermined';
+				pm.setAttribute('value', percentage);
+			}
+			else if (pm.hasAttribute('value')) {
+				pm.removeAttribute('value');
 			}
 		}
 		_lastPercentage = percentage;

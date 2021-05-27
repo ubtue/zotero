@@ -6,6 +6,7 @@
 <!ENTITY zotero.general.deselectAll "Hiçbirini Seçme">
 <!ENTITY zotero.general.edit "Düzenle">
 <!ENTITY zotero.general.delete "Sil">
+<!ENTITY zotero.general.moveToTrash "Move to Trash">
 <!ENTITY zotero.general.ok "Tamam">
 <!ENTITY zotero.general.cancel "İptal Et">
 <!ENTITY zotero.general.refresh "Yenile">
@@ -90,6 +91,7 @@
 
 <!ENTITY zotero.items.menu.showInLibrary "Kitaplıkta Göster">
 <!ENTITY zotero.items.menu.attach.note "Not Ekle">
+<!ENTITY zotero.items.menu.attach.noteFromAnnotations "Add Note from Annotations">
 <!ENTITY zotero.items.menu.attach "Ek Ekle">
 <!ENTITY zotero.items.menu.attach.link.uri "URI'ye Bağlantı İliştir">
 <!ENTITY zotero.items.menu.attach.file "Dosyanın Kaydedilmiş Kopyasını Ekle">
@@ -155,6 +157,8 @@
 <!ENTITY zotero.toolbar.attachment.add "Dosyanın bir Kopyasının Sakla">
 <!ENTITY zotero.toolbar.attachment.weblink "Geçerli Sayfaya Bağlantıyı Kaydet">
 <!ENTITY zotero.toolbar.attachment.snapshot "Geçerli Sayfanın Görünümünü Al">
+<!ENTITY zotero.toolbar.context.item "Item">
+<!ENTITY zotero.toolbar.context.notes "Notes">
 
 <!ENTITY zotero.tagSelector.noTagsToDisplay "Gösterilecek etiket yok">
 <!ENTITY zotero.tagSelector.loadingTags "Etiketleri yüklüyor...">
@@ -175,8 +179,8 @@
 <!ENTITY zotero.lookup.description "ISBN, DOI, PMID ya da arXiv numaralarını girerek kitaplığınıza ekleyin:">
 <!ENTITY zotero.lookup.button.search "Ara">
 
-<!ENTITY zotero.createParent.title "Create Parent Item">
-<!ENTITY zotero.createParent.button.manual "Manual Entry">
+<!ENTITY zotero.createParent.title "Ana Eser Yarat">
+<!ENTITY zotero.createParent.button.manual "Elle Veri Girişi">
 
 <!ENTITY zotero.selectitems.title "Eser Seç">
 <!ENTITY zotero.selectitems.intro.label "Kitaplığınıza eklemek istediğiniz eserleri seçiniz">
@@ -325,3 +329,9 @@
 <!ENTITY zotero.attachLink.title "URI'ye Bağlantı Ekle.">
 <!ENTITY zotero.attachLink.label.link "Bağlantı">
 <!ENTITY zotero.attachLink.label.title "Başlık">
+
+<!ENTITY zotero.context.addChildNote "Add Item Note">
+<!ENTITY zotero.context.addChildNoteFromAnnotations "Add Item Note from Annotations">
+<!ENTITY zotero.context.addStandaloneNote "Add Standalone Note">
+<!ENTITY zotero.context.addStandaloneNoteFromAnnotations "Add Standalone Note from Annotations">
+<!ENTITY zotero.context.editInWindow "Edit in a Separate Window">

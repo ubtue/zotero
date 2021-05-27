@@ -42,6 +42,28 @@ const ZoteroStandalone = new function() {
 			window.document.documentElement.setAttribute('sizemode', 'normal');
 		}
 		
+		// Create tab bar by default
+		if (Zotero.isMac) {
+			document.documentElement.setAttribute('drawintitlebar', true);
+			document.documentElement.setAttribute('tabsintitlebar', true);
+			document.documentElement.setAttribute('chromemargin', '0,-1,-1,-1');
+		}
+		
+		this.switchMenuType('library');
+		this._notifierID = Zotero.Notifier.registerObserver(
+			{
+				notify: async (action, type, ids, extraData) => {
+					if (action == 'select') {
+						// "library" or "reader"
+						this.switchMenuType(extraData[ids[0]].type);
+						setTimeout(() => ZoteroPane.updateToolbarPosition(), 0);
+					}
+				}
+			},
+			['tab'],
+			'tab'
+		);
+		
 		Zotero.Promise.try(function () {
 			if(!Zotero) {
 				throw true;
@@ -59,6 +81,13 @@ const ZoteroStandalone = new function() {
 			
 			ZoteroStandalone.DebugOutput.init();
 			
+			// TEMP: Remove tab bar if not PDF build
+			if (Zotero.isMac && !Zotero.isPDFBuild) {
+				document.documentElement.removeAttribute('drawintitlebar');
+				document.documentElement.removeAttribute('tabsintitlebar');
+				document.documentElement.removeAttribute('chromemargin');
+			}
+
 			Zotero.hideZoteroPaneOverlays();
 			ZoteroPane.init();
 			ZoteroPane.makeVisible();
@@ -90,7 +119,16 @@ const ZoteroStandalone = new function() {
 			return;
 		});
 	}
-	
+
+	this.switchMenuType = function (type) {
+		document.querySelectorAll('.menu-type-library, .menu-type-reader').forEach(el => el.collapsed = true);
+		document.querySelectorAll('.menu-type-' + type).forEach(el => el.collapsed = false);
+	};
+
+	this.onReaderCmd = function (cmd) {
+		let reader = Zotero.Reader.getByTabID(Zotero_Tabs.selectedID);
+		reader.menuCmd(cmd);
+	};
 	
 	this.onFileMenuOpen = function () {
 		var active = false;
@@ -105,6 +143,46 @@ const ZoteroStandalone = new function() {
 		}
 		catch (e) {}
 		this.updateMenuItemEnabled('manage-attachments-menu', active);
+		
+		// TEMP: Quick implementation
+		try {
+			let menuitem = document.getElementById('menu_export_files');
+			let sep = menuitem.nextSibling;
+			
+			let zp = Zotero.getActiveZoteroPane();
+			if (zp) {
+				let numFiles = zp.getSelectedItems().reduce((num, item) => {
+					if (item.isPDFAttachment()) {
+						return num + 1;
+					}
+					if (item.isRegularItem()) {
+						return num + item.numPDFAttachments();
+					}
+					return num;
+				}, 0);
+				if (numFiles) {
+					menuitem.hidden = false;
+					sep.hidden = false;
+					if (numFiles == 1) {
+						menuitem.label = 'Export PDF…';
+					}
+					else {
+						menuitem.label = 'Export PDFs…';
+					}
+				}
+				else {
+					menuitem.hidden = true;
+					sep.hidden = true;
+				}
+			}
+			else {
+				menuitem.hidden = true;
+				sep.hidden = true;
+			}
+		}
+		catch (e) {
+			Zotero.logError(e);
+		}
 	};
 	
 	
@@ -422,7 +500,6 @@ const ZoteroStandalone = new function() {
 	this.updateNoteFontSize = function (event) {
 		var size = event.originalTarget.getAttribute('label');
 		Zotero.Prefs.set('note.fontSize', size);
-		this.promptForRestart();
 	};
 	
 	
@@ -509,6 +586,7 @@ const ZoteroStandalone = new function() {
 	 * Called before standalone window is closed
 	 */
 	this.onUnload = function() {
+		Zotero.Notifier.unregisterObserver(this._notifierID);
 		ZoteroPane.destroy();
 	}
 }

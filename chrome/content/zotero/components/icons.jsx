@@ -26,12 +26,13 @@ function i(name, svgOrSrc, hasDPI=true) {
 			const { className } = this.props
 			
 			if (typeof svgOrSrc == 'string') {
+				let finalSrc = svgOrSrc;
 				if (hasDPI && window.devicePixelRatio >= 1.25) {
 					let parts = svgOrSrc.split('.');
 					parts[parts.length-2] = parts[parts.length-2] + '@2x';
-					svgOrSrc = parts.join('.')
+					finalSrc = parts.join('.')
 				}
-				return <Icon className={className} name={name.toLowerCase()}><img src={svgOrSrc}/></Icon>
+				return <Icon className={className} name={name.toLowerCase()}><img src={finalSrc}/></Icon>
 			}
 
 			return (
@@ -54,4 +55,5 @@ function i(name, svgOrSrc, hasDPI=true) {
 
 i('TagSelectorMenu', "chrome://zotero/skin/tag-selector-menu.png")
 i('DownChevron', "chrome://zotero/skin/searchbar-dropmarker.png")
+i('Xmark', "chrome://zotero/skin/xmark.png")
 

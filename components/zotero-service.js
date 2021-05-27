@@ -47,6 +47,7 @@ const xpcomFilesAll = [
 	'http',
 	'mimeTypeHandler',
 	'openurl',
+	'pdfWorker/manager',
 	'ipc',
 	'profile',
 	'progressWindow',
@@ -64,7 +65,7 @@ const xpcomFilesLocal = [
 	'libraryTreeView',
 	'collectionTreeView',
 	'collectionTreeRow',
-	'annotate',
+	'annotations',
 	'api',
 	'attachments',
 	'cite',
@@ -95,6 +96,7 @@ const xpcomFilesLocal = [
 	'data/tags',
 	'db',
 	'duplicates',
+	'editorInstance',
 	'feedReader',
 	'fulltext',
 	'id',
@@ -103,8 +105,10 @@ const xpcomFilesLocal = [
 	'locale',
 	'locateManager',
 	'mime',
+	'noteBackups',
 	'notifier',
 	'openPDF',
+	'reader',
 	'progressQueue',
 	'progressQueueDialog',
 	'quickCopy',
@@ -367,6 +371,13 @@ function ZoteroService() {
 							zContext.Zotero.startupErrorHandler();
 						}
 						else if (zContext.Zotero.startupError) {
+							// Try to repair the DB on the next startup, in case it helps resolve
+							// the error
+							try {
+								zContext.Zotero.Schema.setIntegrityCheckRequired(true);
+							}
+							catch (e) {}
+							
 							try {
 								zContext.Zotero.startupError =
 									zContext.Zotero.Utilities.Internal.filterStack(
@@ -524,8 +535,10 @@ ZoteroCommandLineHandler.prototype = {
 			
 			var command = cmdLine.handleFlagWithParam("ZoteroIntegrationCommand", false);
 			var docId = cmdLine.handleFlagWithParam("ZoteroIntegrationDocument", false);
+			var templateVersion = parseInt(cmdLine.handleFlagWithParam("ZoteroIntegrationTemplateVersion", false));
+			templateVersion = isNaN(templateVersion) ? 0 : templateVersion;
 			
-			zContext.Zotero.Integration.execCommand(agent, command, docId);
+			zContext.Zotero.Integration.execCommand(agent, command, docId, templateVersion);
 		}
 		
 		// handler for Windows IPC commands

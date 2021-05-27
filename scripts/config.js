@@ -38,7 +38,20 @@ const symlinkFiles = [
 	'resource/SingleFile/lib/**/*',
 	'resource/SingleFile/extension/lib/single-file/fetch/content/content-fetch.js',
 	'!resource/SingleFile/lib/single-file/single-file.js',
-	'update.rdf'
+	// We only need a couple Ace Editor files
+	'!resource/ace/**/*',
+	'resource/ace/ace.js',
+	// Enable for autocomplete
+	//'resource/ace/ext-language_tools.js',
+	'resource/ace/ext-searchbox.js',
+	'resource/ace/keybinding-emacs.js',
+	'resource/ace/keybinding-vim.js',
+	'resource/ace/mode-javascript.js',
+	'resource/ace/theme-chrome.js',
+	'resource/ace/theme-monokai.js',
+	'resource/ace/worker-javascript.js',
+	'update.rdf',
+	'!chrome/skin/default/zotero/**/*.scss'
 ];
 
 
@@ -77,7 +90,6 @@ const browserifyConfigs = [
 // exclude mask used for js, copy, symlink and sass tasks
 const ignoreMask = [
 	'**/#*',
-	'**/_*.scss',
 	'resource/schema/global/schema.json.gz'
 ];
 
@@ -98,6 +110,8 @@ const scssFiles = [
 	'chrome/skin/default/zotero/**/*.scss'
 ];
 
+const buildsURL = 'https://zotero-download.s3.amazonaws.com/ci/';
+
 module.exports = {
-	dirs, symlinkDirs, copyDirs, symlinkFiles, browserifyConfigs, jsFiles, scssFiles, ignoreMask
+	dirs, symlinkDirs, copyDirs, symlinkFiles, browserifyConfigs, jsFiles, scssFiles, ignoreMask, buildsURL
 };

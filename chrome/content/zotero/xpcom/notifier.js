@@ -30,7 +30,7 @@ Zotero.Notifier = new function(){
 	var _types = [
 		'collection', 'search', 'share', 'share-items', 'item', 'file',
 		'collection-item', 'item-tag', 'tag', 'setting', 'group', 'trash',
-		'bucket', 'relation', 'feed', 'feedItem', 'sync', 'api-key'
+		'bucket', 'relation', 'feed', 'feedItem', 'sync', 'api-key', 'tab'
 	];
 	var _transactionID = false;
 	var _queue = {};
@@ -93,7 +93,7 @@ Zotero.Notifier = new function(){
 	* Possible values:
 	*
 	* 	event: 'add', 'modify', 'delete', 'move' ('c', for changing parent),
-	*		'remove' (ci, it), 'refresh', 'redraw', 'trash', 'unreadCountUpdated'
+	*		'remove' (ci, it), 'refresh', 'redraw', 'trash', 'unreadCountUpdated', 'index'
 	* 	type - 'collection', 'search', 'item', 'collection-item', 'item-tag', 'tag',
 	*		'group', 'relation', 'feed', 'feedItem'
 	* 	ids - single id or array of ids

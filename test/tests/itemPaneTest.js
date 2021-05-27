@@ -282,16 +282,18 @@ describe("Item pane", function () {
 			
 			// Wait for the editor
 			yield new Zotero.Promise((resolve, reject) => {
-				noteEditor.noteField.onInit(() => resolve());
-			})
-			assert.equal(noteEditor.noteField.value, '');
-			
+				noteEditor.onInit(() => resolve());
+			});
+			assert.equal(noteEditor._editorInstance._iframeWindow.wrappedJSObject.getDataSync(), null);
 			item.setNote('<p>Test</p>');
 			yield item.saveTx();
 			
-			assert.equal(noteEditor.noteField.value, '<p>Test</p>');
-		})
-	})
+			// Wait for asynchronous editor update
+			do {
+				yield Zotero.Promise.delay(10);
+			} while(noteEditor._editorInstance._iframeWindow.wrappedJSObject.getDataSync().html.replace(/\n/g,'') != `<div data-schema-version="${Zotero.EditorInstance.SCHEMA_VERSION}"><p>Test</p></div>`);
+		});
+	});
 	
 	describe("Feed buttons", function() {
 		describe("Mark as Read/Unread", function() {

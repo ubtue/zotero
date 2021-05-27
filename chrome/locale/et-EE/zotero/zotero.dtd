@@ -6,6 +6,7 @@
 <!ENTITY zotero.general.deselectAll "Tühistada kõik valikud">
 <!ENTITY zotero.general.edit "Toimetada">
 <!ENTITY zotero.general.delete "Kustutada">
+<!ENTITY zotero.general.moveToTrash "Move to Trash">
 <!ENTITY zotero.general.ok "OK">
 <!ENTITY zotero.general.cancel "Tühistada">
 <!ENTITY zotero.general.refresh "Värskenda">
@@ -90,6 +91,7 @@
 
 <!ENTITY zotero.items.menu.showInLibrary "Näidata raamatukogus">
 <!ENTITY zotero.items.menu.attach.note "Märkuse lisamine">
+<!ENTITY zotero.items.menu.attach.noteFromAnnotations "Add Note from Annotations">
 <!ENTITY zotero.items.menu.attach "Manuse lisamine">
 <!ENTITY zotero.items.menu.attach.link.uri "Seonda link URI-ga…">
 <!ENTITY zotero.items.menu.attach.file "Lisada fail kirje manusena">
@@ -155,6 +157,8 @@
 <!ENTITY zotero.toolbar.attachment.add "Faili koopia salvestamine...">
 <!ENTITY zotero.toolbar.attachment.weblink "Salvestada link käesolevale leheküljele">
 <!ENTITY zotero.toolbar.attachment.snapshot "Teha käesolevast leheküljest momentülesvõte">
+<!ENTITY zotero.toolbar.context.item "Item">
+<!ENTITY zotero.toolbar.context.notes "Notes">
 
 <!ENTITY zotero.tagSelector.noTagsToDisplay "Lipikud puuduvad">
 <!ENTITY zotero.tagSelector.loadingTags "Loading tags…">
@@ -325,3 +329,9 @@
 <!ENTITY zotero.attachLink.title "Seonda link URI-ga…">
 <!ENTITY zotero.attachLink.label.link "Link:">
 <!ENTITY zotero.attachLink.label.title "Pealkiri:">
+
+<!ENTITY zotero.context.addChildNote "Add Item Note">
+<!ENTITY zotero.context.addChildNoteFromAnnotations "Add Item Note from Annotations">
+<!ENTITY zotero.context.addStandaloneNote "Add Standalone Note">
+<!ENTITY zotero.context.addStandaloneNoteFromAnnotations "Add Standalone Note from Annotations">
+<!ENTITY zotero.context.editInWindow "Edit in a Separate Window">

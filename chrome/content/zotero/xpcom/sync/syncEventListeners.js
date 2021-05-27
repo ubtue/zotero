@@ -99,7 +99,8 @@ Zotero.Sync.EventListeners.ChangeListener = new function () {
 
 
 Zotero.Sync.EventListeners.AutoSyncListener = {
-	_editTimeout: 15,
+	_editTimeout: 3,
+	_noteEditTimeout: 15,
 	_observerID: null,
 	
 	init: function () {
@@ -114,45 +115,86 @@ Zotero.Sync.EventListeners.AutoSyncListener = {
 	},
 	
 	notify: function (event, type, ids, extraData) {
-		// TODO: skip others
-		if (event == 'refresh' || event == 'redraw') {
-			return;
-		}
-		
-		if (Zotero.Sync.Runner.syncInProgress) {
-			return;
+		switch (event) {
+			case 'add':
+			case 'modify':
+			case 'delete':
+			case 'index':
+				break;
+			
+			default:
+				return;
 		}
 		
 		// Only trigger sync for certain types
-		//
-		// TODO: settings, full text
-		if (!Zotero.DataObjectUtilities.getTypes().includes(type)) {
+		// TODO: full text
+		if (![...Zotero.DataObjectUtilities.getTypes(), 'setting'].includes(type)) {
 			return;
 		}
 		
 		// Determine affected libraries so only those can be synced
 		let libraries = [];
-		let objectsClass = Zotero.DataObjectUtilities.getObjectsClassForObjectType(type);
-		ids.forEach(id => {
-			let lk = objectsClass.getLibraryAndKeyFromID(id);
-			if (lk) {
-				let library = Zotero.Libraries.get(lk.libraryID);
+		var fileLibraries = new Set();
+		var fullTextLibraries = new Set();
+		
+		if (type == 'setting') {
+			for (let id of ids) {
+				// E.g., '1/lastPageIndex_u_ABCD2345'
+				let libraryID = parseInt(id.split('/')[0]);
+				let library = Zotero.Libraries.get(libraryID);
 				if (library.syncable) {
 					libraries.push(library);
 				}
 			}
-		});
+		}
+		else if (Zotero.DataObjectUtilities.getTypes().includes(type)) {
+			let objectsClass = Zotero.DataObjectUtilities.getObjectsClassForObjectType(type);
+			ids.forEach(id => {
+				let lk = objectsClass.getLibraryAndKeyFromID(id);
+				if (lk) {
+					let library = Zotero.Libraries.get(lk.libraryID);
+					if (library.syncable) {
+						libraries.push(library);
+					}
+				}
+			});
+		}
+		else {
+			return;
+		}
 		
 		libraries = Zotero.Sync.Data.Local.filterSkippedLibraries(libraries);
 		if (!libraries.length) {
 			return;
 		}
 		
+		var noteEdit = false;
+		if (type == 'item' && (event == 'add' || event == 'modify' || event == 'index')) {
+			// Use a longer timeout for a single note edit, to avoid repeating syncing during typing
+			if (ids.length == 1 && (Zotero.Items.get(ids[0]) || {}).itemType == 'note') {
+				noteEdit = true;
+			}
+			else {
+				for (let id of ids) {
+					let item = Zotero.Items.get(id);
+					if (!item) continue;
+					if (item.isStoredFileAttachment()) {
+						fileLibraries.add(item.libraryID);
+					}
+					if (item.isFileAttachment()) {
+						fullTextLibraries.add(item.libraryID);
+					}
+				}
+			}
+		}
+		
 		Zotero.Sync.Runner.setSyncTimeout(
-			this._editTimeout,
+			noteEdit ? this._noteEditTimeout : this._editTimeout,
 			false,
 			{
-				libraries: libraries.map(library => library.libraryID)
+				libraries: libraries.map(library => library.libraryID),
+				fileLibraries: [...fileLibraries],
+				fullTextLibraries: [...fullTextLibraries]
 			}
 		);
 	},

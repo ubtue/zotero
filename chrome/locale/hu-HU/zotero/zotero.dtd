@@ -6,6 +6,7 @@
 <!ENTITY zotero.general.deselectAll "Kijelölés megszüntetése">
 <!ENTITY zotero.general.edit "Szerkesztés">
 <!ENTITY zotero.general.delete "Törlés">
+<!ENTITY zotero.general.moveToTrash "Move to Trash">
 <!ENTITY zotero.general.ok "OK">
 <!ENTITY zotero.general.cancel "Mégse">
 <!ENTITY zotero.general.refresh "Újratöltés">
@@ -90,6 +91,7 @@
 
 <!ENTITY zotero.items.menu.showInLibrary "Megjelenítés a könyvtárban">
 <!ENTITY zotero.items.menu.attach.note "Jegyzet hozzáadása">
+<!ENTITY zotero.items.menu.attach.noteFromAnnotations "Add Note from Annotations">
 <!ENTITY zotero.items.menu.attach "Csatolmány hozzáadása">
 <!ENTITY zotero.items.menu.attach.link.uri "Link csatolása az URI-hez…">
 <!ENTITY zotero.items.menu.attach.file "Helyben tárolt példány csatolása">
@@ -155,6 +157,8 @@
 <!ENTITY zotero.toolbar.attachment.add "Helyi másolat tárolása...">
 <!ENTITY zotero.toolbar.attachment.weblink "Hivatkozás az aktuális oldalra">
 <!ENTITY zotero.toolbar.attachment.snapshot "Pillanatfelvétel az aktuális oldalról">
+<!ENTITY zotero.toolbar.context.item "Item">
+<!ENTITY zotero.toolbar.context.notes "Notes">
 
 <!ENTITY zotero.tagSelector.noTagsToDisplay "Nincsenek címkék">
 <!ENTITY zotero.tagSelector.loadingTags "Címkék betöltése…">
@@ -176,7 +180,7 @@
 <!ENTITY zotero.lookup.button.search "Keresés">
 
 <!ENTITY zotero.createParent.title "Create Parent Item">
-<!ENTITY zotero.createParent.button.manual "Manual Entry">
+<!ENTITY zotero.createParent.button.manual "Kézi bevitel">
 
 <!ENTITY zotero.selectitems.title "Elemek kiválasztása">
 <!ENTITY zotero.selectitems.intro.label "A könyvtárhoz hozzáadni kíván elemek kiválasztása">
@@ -325,3 +329,9 @@
 <!ENTITY zotero.attachLink.title "Link csatolása az URI-hoz">
 <!ENTITY zotero.attachLink.label.link "Link:">
 <!ENTITY zotero.attachLink.label.title "Cím:">
+
+<!ENTITY zotero.context.addChildNote "Add Item Note">
+<!ENTITY zotero.context.addChildNoteFromAnnotations "Add Item Note from Annotations">
+<!ENTITY zotero.context.addStandaloneNote "Add Standalone Note">
+<!ENTITY zotero.context.addStandaloneNoteFromAnnotations "Add Standalone Note from Annotations">
+<!ENTITY zotero.context.editInWindow "Edit in a Separate Window">

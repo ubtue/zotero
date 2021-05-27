@@ -248,9 +248,11 @@ describe("Zotero.Schema", function() {
 			});
 		})
 		
-		it("should repair a missing userdata table", async function () {
+		it("should create missing tables unless 'skipReconcile' is true", async function () {
 			await Zotero.DB.queryAsync("DROP TABLE retractedItems");
 			assert.isFalse(await Zotero.DB.tableExists('retractedItems'));
+			assert.isTrue(await Zotero.Schema.integrityCheck(false, { skipReconcile: true }));
+			
 			assert.isFalse(await Zotero.Schema.integrityCheck());
 			assert.isTrue(await Zotero.Schema.integrityCheck(true));
 			assert.isTrue(await Zotero.DB.tableExists('retractedItems'));
@@ -292,6 +294,12 @@ describe("Zotero.Schema", function() {
 			
 			await assert.isFalse(await Zotero.Schema.integrityCheck());
 			await assert.isTrue(await Zotero.Schema.integrityCheck(true));
+			await assert.isTrue(await Zotero.Schema.integrityCheck());
+		});
+		
+		it("should allow embedded-image attachments under notes", async function () {
+			var item = await createDataObject('item', { itemType: 'note' });
+			await createEmbeddedImage(item);
 			await assert.isTrue(await Zotero.Schema.integrityCheck());
 		});
 	})
