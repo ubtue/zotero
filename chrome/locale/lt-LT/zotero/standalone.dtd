@@ -23,8 +23,8 @@
 <!ENTITY closeCmd.label "Užverti">
 <!ENTITY closeCmd.key "W">
 <!ENTITY closeCmd.accesskey "U">
-<!ENTITY manageAttachments.label "Manage Attachments">
-<!ENTITY convertToStored.label "Convert Linked Files to Stored Files…">
+<!ENTITY manageAttachments.label "Tvarkyti pridėtas rinkmenas">
+<!ENTITY convertToStored.label "Nuorodas pakeisti tikromis rinkmenomis...">
 <!ENTITY importCmd.label "Importuoti...">
 <!ENTITY importCmd.key "I">
 <!ENTITY importFromClipboardCmd.label "Importuoti iškarpinės turinį">
@@ -61,7 +61,7 @@
 <!ENTITY installConnector.label "Įdiegti papildinį naršyklei">
 <!ENTITY installConnector.accesskey "C">
 <!ENTITY addons.label "Priedai">
-<!ENTITY developer.label "Progarmuotojams">
+<!ENTITY developer.label "Programuotojams">
 
 
 <!ENTITY minimizeWindow.key "r">

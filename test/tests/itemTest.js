@@ -407,6 +407,14 @@ describe("Zotero.Item", function () {
 			assert.ok(item.parentID);
 			assert.equal(item.parentID, parentItemID);
 		});
+		
+		it("should not be settable to item itself", async function () {
+			var item = await createDataObject('item', { itemType: 'note' });
+			item.parentID = item.id;
+			var e = await getPromiseError(item.saveTx());
+			assert.ok(e);
+			assert.equal(e.message, "Item cannot be set as parent of itself");
+		});
 	});
 	
 	describe("#parentKey", function () {
@@ -485,6 +493,16 @@ describe("Zotero.Item", function () {
 			
 			assert.isFalse(noteItem.isTopLevelItem());
 		})
+		
+		it("should not be settable to item itself", async function () {
+			var item = new Zotero.Item('note');
+			item.libraryID = Zotero.Libraries.userLibraryID;
+			item.key = Zotero.DataObjectUtilities.generateKey();
+			item.parentKey = item.key;
+			var e = await getPromiseError(item.saveTx());
+			assert.ok(e);
+			assert.equal(e.message, "Item cannot be set as parent of itself");
+		});
 	});
 	
 	describe("#getCreators()", function () {
@@ -877,6 +895,11 @@ describe("Zotero.Item", function () {
 	})
 	
 	describe("#attachmentFilename", function () {
+		afterEach(function () {
+			Zotero.Prefs.set('saveRelativeAttachmentPath', false)
+			Zotero.Prefs.clear('baseAttachmentPath')
+		});
+		
 		it("should get and set a filename for a stored file", function* () {
 			var filename = "test.txt";
 			
@@ -907,12 +930,42 @@ describe("Zotero.Item", function () {
 			assert.equal(item.getFilePath(), file.path);
 		});
 		
-		it.skip("should get and set a filename for a base-dir-relative file", function* () {
+		it("should get a filename for a base-dir-relative file", function () {
+			var dir = getTestDataDirectory().path;
+			Zotero.Prefs.set('saveRelativeAttachmentPath', true)
+			Zotero.Prefs.set('baseAttachmentPath', dir)
 			
-		})
+			var file = OS.Path.join(dir, 'test.png');
+			
+			var item = new Zotero.Item('attachment');
+			item.attachmentLinkMode = 'linked_file';
+			item.attachmentPath = file;
+			
+			assert.equal(item.attachmentFilename, 'test.png');
+		});
+		
+		it("should get a filename for a base-dir-relative file in a subdirectory", function () {
+			var dir = getTestDataDirectory().path;
+			var baseDir = OS.Path.dirname(dir);
+			Zotero.Prefs.set('saveRelativeAttachmentPath', true)
+			Zotero.Prefs.set('baseAttachmentPath', baseDir)
+			
+			var file = OS.Path.join(dir, 'test.png');
+			
+			var item = new Zotero.Item('attachment');
+			item.attachmentLinkMode = 'linked_file';
+			item.attachmentPath = file;
+			
+			assert.equal(item.attachmentFilename, 'test.png');
+		});
 	})
 	
 	describe("#attachmentPath", function () {
+		afterEach(function () {
+			Zotero.Prefs.set('saveRelativeAttachmentPath', false)
+			Zotero.Prefs.clear('baseAttachmentPath')
+		});
+		
 		it("should return an absolute path for a linked attachment", function* () {
 			var file = getTestDataDirectory();
 			file.append('test.png');
@@ -930,7 +983,6 @@ describe("Zotero.Item", function () {
 		
 		it("should set a prefixed relative path for a path within the defined base directory", function* () {
 			var dir = getTestDataDirectory().path;
-			var dirname = OS.Path.basename(dir);
 			var baseDir = OS.Path.dirname(dir);
 			Zotero.Prefs.set('saveRelativeAttachmentPath', true)
 			Zotero.Prefs.set('baseAttachmentPath', baseDir)
@@ -942,14 +994,10 @@ describe("Zotero.Item", function () {
 			item.attachmentPath = file;
 			
 			assert.equal(item.attachmentPath, "attachments:data/test.png");
-			
-			Zotero.Prefs.set('saveRelativeAttachmentPath', false)
-			Zotero.Prefs.clear('baseAttachmentPath')
 		})
 		
 		it("should return a prefixed path for a linked attachment within the defined base directory", function* () {
 			var dir = getTestDataDirectory().path;
-			var dirname = OS.Path.basename(dir);
 			var baseDir = OS.Path.dirname(dir);
 			Zotero.Prefs.set('saveRelativeAttachmentPath', true)
 			Zotero.Prefs.set('baseAttachmentPath', baseDir)
@@ -961,9 +1009,6 @@ describe("Zotero.Item", function () {
 			});
 			
 			assert.equal(item.attachmentPath, "attachments:data/test.png");
-			
-			Zotero.Prefs.set('saveRelativeAttachmentPath', false)
-			Zotero.Prefs.clear('baseAttachmentPath')
 		})
 	})
 	
@@ -985,7 +1030,22 @@ describe("Zotero.Item", function () {
 			// DEBUG: Is this necessary?
 			assert.equal(item.attachmentSyncState, Zotero.Sync.Storage.Local.SYNC_STATE_TO_UPLOAD);
 			assert.isNull(item.attachmentSyncedHash);
-		})
+		});
+		
+		// Only relevant on a case-insensitive filesystem
+		it("should rename an attached file with a case-only change (Mac)", async function () {
+			var file = getTestDataDirectory();
+			file.append('test.png');
+			var item = await Zotero.Attachments.importFromFile({
+				file: file
+			});
+			var newName = 'Test.png';
+			await item.renameAttachmentFile(newName);
+			assert.equal(item.attachmentFilename, newName);
+			var path = await item.getFilePathAsync();
+			assert.equal(OS.Path.basename(path), newName)
+			await OS.File.exists(path);
+		});
 		
 		it("should rename a linked file", function* () {
 			var filename = 'test.png';
@@ -1287,6 +1347,20 @@ describe("Zotero.Item", function () {
 				0
 			);
 		});
+		
+		it("should remove an item in a collection in a read-only library", async function () {
+			var group = await createGroup();
+			var libraryID = group.libraryID;
+			var collection = await createDataObject('collection', { libraryID });
+			var item = await createDataObject('item', { libraryID, collections: [collection.id] });
+			
+			group.editable = false;
+			await group.save();
+			
+			await item.eraseTx({
+				skipEditCheck: true
+			});
+		});
 	});
 	
 	
@@ -1336,6 +1410,16 @@ describe("Zotero.Item", function () {
 			var newItem = item.clone();
 			assert.sameDeepMembers(item.getCreators(), newItem.getCreators());
 		})
+		
+		it("shouldn't copy linked-item relation", async function () {
+			var group = await getGroup();
+			var groupItem = await createDataObject('item', { libraryID: group.libraryID });
+			var item = await createDataObject('item');
+			await item.addLinkedItem(groupItem);
+			assert.equal(await item.getLinkedItem(group.libraryID), groupItem);
+			var newItem = item.clone();
+			assert.isEmpty(Object.keys(newItem.toJSON().relations));
+		});
 	})
 	
 	describe("#moveToLibrary()", function () {
@@ -1799,104 +1883,241 @@ describe("Zotero.Item", function () {
 			assert.equal(item.getField('extra'), `doi: ${doi2}`);
 		});*/
 		
-		it.skip("should store unknown field in Extra in non-strict mode", function () {
+		it("should use valid CSL type from Extra", function () {
 			var json = {
 				itemType: "journalArticle",
-				title: "Test",
-				foo: "Bar"
+				pages: "123",
+				extra: "Type: song"
 			};
 			var item = new Zotero.Item;
 			item.fromJSON(json);
-			assert.equal(item.getField('title'), 'Test');
-			assert.equal(item.getField('extra'), 'foo: Bar');
+			assert.equal(item.itemTypeID, Zotero.ItemTypes.getID('audioRecording'));
+			// A field valid for the old item type should be moved to Extra
+			assert.equal(item.getField('extra'), 'Pages: 123');
 		});
 		
-		it.skip("should replace unknown field in Extra in non-strict mode", function () {
+		it("should ignore creator field in Extra", async function () {
 			var json = {
 				itemType: "journalArticle",
-				title: "Test",
-				foo: "BBB",
-				extra: "Foo: AAA\nBar: CCC"
-			};
-			var item = new Zotero.Item;
-			item.fromJSON(json);
-			assert.equal(item.getField('title'), 'Test');
-			assert.equal(item.getField('extra'), 'Foo: BBB\nBar: CCC');
-		});
-		
-		it("should handle Extra in non-strict mode", function () {
-			var json = {
-				itemType: "journalArticle",
-				title: "Test",
-				extra: "Here's some extra text"
+				extra: "Author: Name"
 			};
 			var item = new Zotero.Item();
 			item.fromJSON(json);
+			assert.lengthOf(item.getCreatorsJSON(), 0);
 			assert.equal(item.getField('extra'), json.extra);
 		});
 		
-		it("should throw on unknown field in strict mode", function () {
-			var json = {
-				itemType: "journalArticle",
-				title: "Test",
-				foo: "Bar"
-			};
-			var item = new Zotero.Item;
-			var f = () => {
-				item.fromJSON(json, { strict: true });
-			};
-			assert.throws(f, /^Unknown field/);
+		describe("not-strict mode", function () {
+			it("should handle Extra in non-strict mode", function () {
+				var json = {
+					itemType: "journalArticle",
+					title: "Test",
+					extra: "Here's some extra text"
+				};
+				var item = new Zotero.Item();
+				item.fromJSON(json);
+				assert.equal(item.getField('extra'), json.extra);
+			});
+			
+			it("should store unknown fields in Extra", function () {
+				var json = {
+					itemType: "journalArticle",
+					title: "Test",
+					fooBar: "123",
+					testField: "test value"
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('title'), 'Test');
+				assert.equal(item.getField('extra'), 'Foo Bar: 123\nTest Field: test value');
+			});
+			
+			it("should replace unknown field in Extra", function () {
+				var json = {
+					itemType: "journalArticle",
+					title: "Test",
+					foo: "BBB",
+					extra: "Foo: AAA\nBar: CCC"
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('title'), 'Test');
+				assert.equal(item.getField('extra'), 'Foo: BBB\nBar: CCC');
+			});
+			
+			it("should store invalid-for-type field in Extra", function () {
+				var json = {
+					itemType: "journalArticle",
+					title: "Test",
+					medium: "123"
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('title'), 'Test');
+				assert.equal(item.getField('extra'), 'Medium: 123');
+			});
+			
+			it("should ignore invalid-for-type base-mapped field if valid-for-type base field is set in Extra", function () {
+				var json = {
+					itemType: "document",
+					publisher: "Foo", // Valid for 'document'
+					company: "Bar" // Not valid for 'document', but mapped to base field 'publisher'
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('publisher'), 'Foo');
+				assert.equal(item.getField('extra'), '');
+			});
+			
+			it("shouldn't include base field or invalid base-mapped field in Extra if valid base-mapped field is set", function () {
+				var json = {
+					itemType: "audioRecording",
+					publisher: "A", // Base field, which will be overwritten by the valid base-mapped field
+					label: "B", // Valid base-mapped field, which should be stored
+					company: "C", // Invalid base-mapped field, which should be ignored
+					foo: "D" // Invalid other field, which should be added to Extra
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('label'), 'B');
+				assert.equal(item.getField('extra'), 'Foo: D');
+			});
+			
+			it("should remove invalid-for-type base-mapped fields with same values and use base field if not present when storing in Extra", function () {
+				var json = {
+					itemType: "artwork",
+					publisher: "Foo", // Invalid base field
+					company: "Foo", // Invalid base-mapped field
+					label: "Foo" // Invaid base-mapped field
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('extra'), 'Publisher: Foo');
+			});
+			
+			it("should remove invalid-for-type base-mapped Type fields when storing in Extra", function () {
+				var json = {
+					itemType: "document",
+					reportType: "Foo", // Invalid base-mapped field
+					websiteType: "Foo" // Invaid base-mapped field
+				};
+				// Confirm that 'type' is still invalid for 'document', in case this changes
+				assert.isFalse(Zotero.ItemFields.isValidForType(
+					Zotero.ItemFields.getID('type'),
+					Zotero.ItemTypes.getID('document')
+				));
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('extra'), '');
+			});
+			
+			it("should ignore some redundant fields from RDF translator (temporary)", function () {
+				var json = {
+					itemType: "book",
+					edition: "1",
+					versionNumber: "1"
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('edition'), "1");
+				assert.equal(item.getField('extra'), '');
+				
+				json = {
+					itemType: "presentation",
+					meetingName: "Foo",
+					conferenceName: "Foo"
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('meetingName'), "Foo");
+				assert.equal(item.getField('extra'), '');
+				
+				json = {
+					itemType: "journalArticle",
+					publicationTitle: "Foo",
+					reporter: "Foo"
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('publicationTitle'), "Foo");
+				assert.equal(item.getField('extra'), '');
+				
+				json = {
+					itemType: "conferencePaper",
+					proceedingsTitle: "Foo",
+					reporter: "Foo"
+				};
+				var item = new Zotero.Item;
+				item.fromJSON(json);
+				assert.equal(item.getField('proceedingsTitle'), "Foo");
+				assert.equal(item.getField('extra'), '');
+			});
 		});
 		
-		it("should throw on invalid field for a given item type in strict mode", function () {
-			var json = {
-				itemType: "journalArticle",
-				title: "Test",
-				numPages: "123"
-			};
-			var item = new Zotero.Item;
-			var f = () => {
-				item.fromJSON(json, { strict: true });
-			};
-			assert.throws(f, /^Invalid field/);
-		});
-		
-		it("should throw on unknown creator type in strict mode", function () {
-			var json = {
-				itemType: "journalArticle",
-				title: "Test",
-				creators: [
-					{
-						firstName: "First",
-						lastName: "Last",
-						creatorType: "unknown"
-					}
-				]
-			};
-			var item = new Zotero.Item;
-			var f = () => {
-				item.fromJSON(json, { strict: true });
-			};
-			assert.throws(f, /^Unknown creator type/);
-		});
-		
-		it("should throw on invalid creator type for a given item type in strict mode", function () {
-			var json = {
-				itemType: "journalArticle",
-				title: "Test",
-				creators: [
-					{
-						firstName: "First",
-						lastName: "Last",
-						creatorType: "interviewee"
-					}
-				]
-			};
-			var item = new Zotero.Item;
-			var f = () => {
-				item.fromJSON(json, { strict: true });
-			};
-			assert.throws(f, /^Invalid creator type/);
+		describe("strict mode", function () {
+			it("should throw on unknown field", function () {
+				var json = {
+					itemType: "journalArticle",
+					title: "Test",
+					foo: "Bar"
+				};
+				var item = new Zotero.Item;
+				var f = () => {
+					item.fromJSON(json, { strict: true });
+				};
+				assert.throws(f, /^Unknown field/);
+			});
+			
+			it("should throw on invalid field for a given item type", function () {
+				var json = {
+					itemType: "journalArticle",
+					title: "Test",
+					numPages: "123"
+				};
+				var item = new Zotero.Item;
+				var f = () => {
+					item.fromJSON(json, { strict: true });
+				};
+				assert.throws(f, /^Invalid field/);
+			});
+			
+			it("should throw on unknown creator type", function () {
+				var json = {
+					itemType: "journalArticle",
+					title: "Test",
+					creators: [
+						{
+							firstName: "First",
+							lastName: "Last",
+							creatorType: "unknown"
+						}
+					]
+				};
+				var item = new Zotero.Item;
+				var f = () => {
+					item.fromJSON(json, { strict: true });
+				};
+				assert.throws(f, /^Unknown creator type/);
+			});
+			
+			it("should throw on invalid creator type for a given item type", function () {
+				var json = {
+					itemType: "journalArticle",
+					title: "Test",
+					creators: [
+						{
+							firstName: "First",
+							lastName: "Last",
+							creatorType: "interviewee"
+						}
+					]
+				};
+				var item = new Zotero.Item;
+				var f = () => {
+					item.fromJSON(json, { strict: true });
+				};
+				assert.throws(f, /^Invalid creator type/);
+			});
 		});
 		
 		it("should accept ISO 8601 dates", function* () {

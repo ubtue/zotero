@@ -120,7 +120,7 @@
 <!ENTITY zotero.toolbar.import.label "นำเข้า...">
 <!ENTITY zotero.toolbar.importFromClipboard "นำเข้าจากคลิปบอร์ด">
 <!ENTITY zotero.toolbar.export.label "ส่งออกไลบรารี่...">
-<!ENTITY zotero.toolbar.rtfScan.label "กราดตรวจ RTF...">
+<!ENTITY zotero.toolbar.rtfScan.label "RTF Scan">
 <!ENTITY zotero.toolbar.timeline.label "สร้างไทม์ไลน์">
 <!ENTITY zotero.toolbar.preferences.label "ค่าตั้งพึงใจ...">
 <!ENTITY zotero.toolbar.supportAndDocumentation "การสนับสนุนและเอกสาร">
@@ -174,6 +174,9 @@
 
 <!ENTITY zotero.lookup.description "Enter ISBNs, DOIs, PMIDs, or arXiv IDs to add to your library:">
 <!ENTITY zotero.lookup.button.search "Search">
+
+<!ENTITY zotero.createParent.title "Create Parent Item">
+<!ENTITY zotero.createParent.button.manual "Manual Entry">
 
 <!ENTITY zotero.selectitems.title "เลือกรายการ">
 <!ENTITY zotero.selectitems.intro.label "เลือกรายการที่ต้องการเพิ่มเข้าไลบรารี่ของคุณ">

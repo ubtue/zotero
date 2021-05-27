@@ -54,6 +54,11 @@ describe("Zotero.HTTP", function () {
 		server.autoRespond = true;
 	});
 	
+	afterEach(async function () {
+		// Allow requests to settle
+		await Zotero.Promise.delay(50);
+	});
+	
 	after(function* () {
 		var defer = new Zotero.Promise.defer();
 		httpd.stop(() => defer.resolve());
@@ -152,13 +157,16 @@ describe("Zotero.HTTP", function () {
 						"GET",
 						baseURL + "error",
 						{
-							errorDelayIntervals: [10, 20],
-							errorDelayMax: 25
+							errorDelayIntervals: [10, 20, 100],
+							errorDelayMax: 35
 						}
 					)
 				);
 				assert.instanceOf(e, Zotero.HTTP.UnexpectedStatusException);
-				assert.isTrue(spy.calledTwice);
+				assert.isTrue(spy.calledThrice);
+				assert.isTrue(delayStub.calledTwice);
+				assert.equal(delayStub.args[0][0], 10);
+				assert.equal(delayStub.args[1][0], 20);
 			});
 			
 			it("should provide cancellerReceiver a callback to cancel while waiting to retry a 5xx error", async function () {
@@ -173,13 +181,13 @@ describe("Zotero.HTTP", function () {
 				spy = sinon.spy(Zotero.HTTP, "_requestInternal");
 				setTimeout(() => {
 					cancel();
-				}, 50);
+				}, 80);
 				var e = await getPromiseError(
 					Zotero.HTTP.request(
 						"GET",
 						baseURL + "error",
 						{
-							errorDelayIntervals: [10, 10, 100],
+							errorDelayIntervals: [10, 10, 150],
 							cancellerReceiver: function () {
 								cancel = arguments[0];
 							}
@@ -187,7 +195,7 @@ describe("Zotero.HTTP", function () {
 					)
 				);
 				assert.instanceOf(e, Zotero.HTTP.CancelledException);
-				assert.isTrue(spy.calledTwice);
+				assert.equal(spy.callCount, 3);
 			});
 			
 			it("should obey Retry-After for 503", function* () {
@@ -224,7 +232,7 @@ describe("Zotero.HTTP", function () {
 				});
 				spy = sinon.spy(Zotero.HTTP, "_requestInternal");
 				yield Zotero.HTTP.request("GET", baseURL + "error");
-				assert.isTrue(spy.calledThrice);
+				assert.equal(3, spy.callCount);
 				// DEBUG: Why are these slightly off?
 				assert.approximately(delayStub.args[0][0], 5 * 1000, 5);
 				assert.approximately(delayStub.args[1][0], 10 * 1000, 5);
@@ -296,6 +304,18 @@ describe("Zotero.HTTP", function () {
 				);
 			});
 			assert.isTrue(called);
+		});
+		
+		it("should fail on non-2xx response", async function () {
+			var e = await getPromiseError(new Zotero.Promise((resolve, reject) => {
+				Zotero.HTTP.loadDocuments(
+					baseURL + "nonexistent",
+					() => {},
+					resolve,
+					reject
+				);
+			}));
+			assert.instanceOf(e, Zotero.HTTP.UnexpectedStatusException);
 		});
 	});
 });

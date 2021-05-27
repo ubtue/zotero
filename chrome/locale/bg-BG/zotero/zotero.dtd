@@ -120,7 +120,7 @@
 <!ENTITY zotero.toolbar.import.label "Внасяне...">
 <!ENTITY zotero.toolbar.importFromClipboard "Внасяне от клипборда">
 <!ENTITY zotero.toolbar.export.label "Изнасяне на библиотека...">
-<!ENTITY zotero.toolbar.rtfScan.label "RTF сканиране...">
+<!ENTITY zotero.toolbar.rtfScan.label "RTF Scan">
 <!ENTITY zotero.toolbar.timeline.label "Създаване на хронология">
 <!ENTITY zotero.toolbar.preferences.label "Предпочитания...">
 <!ENTITY zotero.toolbar.supportAndDocumentation "Подръжка и документация">
@@ -174,6 +174,9 @@
 
 <!ENTITY zotero.lookup.description "Въведете ISBN, DOI, PMID, или arXiv идентификатори за добавяне към Вашата библиотека:">
 <!ENTITY zotero.lookup.button.search "Търсене">
+
+<!ENTITY zotero.createParent.title "Create Parent Item">
+<!ENTITY zotero.createParent.button.manual "Manual Entry">
 
 <!ENTITY zotero.selectitems.title "Избране на записи">
 <!ENTITY zotero.selectitems.intro.label "Изберете кои записи искате да добавите към Вашата библиотека">

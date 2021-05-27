@@ -120,7 +120,7 @@
 <!ENTITY zotero.toolbar.import.label "درون‌برد...">
 <!ENTITY zotero.toolbar.importFromClipboard "درون‌برد از حافظه">
 <!ENTITY zotero.toolbar.export.label "صدور کتابخانه...">
-<!ENTITY zotero.toolbar.rtfScan.label "پیمایش RTF...">
+<!ENTITY zotero.toolbar.rtfScan.label "RTF Scan">
 <!ENTITY zotero.toolbar.timeline.label "ساخت Time Line">
 <!ENTITY zotero.toolbar.preferences.label "تنظیمات...">
 <!ENTITY zotero.toolbar.supportAndDocumentation "پشتیبانی و راهنما">
@@ -174,6 +174,9 @@
 
 <!ENTITY zotero.lookup.description "Enter ISBNs, DOIs, PMIDs, or arXiv IDs to add to your library:">
 <!ENTITY zotero.lookup.button.search "جستجو">
+
+<!ENTITY zotero.createParent.title "Create Parent Item">
+<!ENTITY zotero.createParent.button.manual "Manual Entry">
 
 <!ENTITY zotero.selectitems.title "انتخاب آیتم‌‌ها">
 <!ENTITY zotero.selectitems.intro.label "آیتم‌‌های مورد نظر را برای افزودن به کتابخانه انتخاب کنید">

@@ -120,7 +120,7 @@
 <!ENTITY zotero.toolbar.import.label "Importă...">
 <!ENTITY zotero.toolbar.importFromClipboard "Importă din memoria clipboard">
 <!ENTITY zotero.toolbar.export.label "Exportă biblioteca...">
-<!ENTITY zotero.toolbar.rtfScan.label "Scanare RTF...">
+<!ENTITY zotero.toolbar.rtfScan.label "Scanare RTF">
 <!ENTITY zotero.toolbar.timeline.label "Creează cronologie">
 <!ENTITY zotero.toolbar.preferences.label "Preferințe...">
 <!ENTITY zotero.toolbar.supportAndDocumentation "Suport și documentație">
@@ -174,6 +174,9 @@
 
 <!ENTITY zotero.lookup.description "Introdu ISBN-urile, DOI-urile, PMID-urile sau ID-urile arXiv pentru a adăuga în biblioteca ta:">
 <!ENTITY zotero.lookup.button.search "Caută">
+
+<!ENTITY zotero.createParent.title "Create Parent Item">
+<!ENTITY zotero.createParent.button.manual "Manual Entry">
 
 <!ENTITY zotero.selectitems.title "Selectează înregistrări">
 <!ENTITY zotero.selectitems.intro.label "Selectează înregistrările pe care ai vrea să le adaugi în biblioteca ta">

@@ -6,8 +6,14 @@ content	zotero-platform		chrome/content/zotero-platform/unix/      os=SunOS
 content	zotero-platform		chrome/content/zotero-platform/unix/      os=FreeBSD
 content	zotero-platform		chrome/content/zotero-platform/unix/      os=OpenBSD
 
+content	zotero-platform-version chrome/content/zotero-platform/default-version/
+# Big Sur shows up as 10.16 when linked against 10.11
+content	zotero-platform-version chrome/content/zotero-platform/mac-big-sur/ os=Darwin osversion=10.16
+#content	zotero-platform-version chrome/content/zotero-platform/mac-big-sur/ os=Darwin
+
 resource zotero				resource/
 
+# Keep in sync with locale.js and zotero-standalone-build:assets/multilocale.txt
 locale	zotero	en-US		chrome/locale/en-US/zotero/
 #locale	zotero	af-ZA		chrome/locale/af-ZA/zotero/
 locale	zotero	ar		chrome/locale/ar/zotero/
@@ -37,7 +43,7 @@ locale	zotero	km			chrome/locale/km/zotero/
 locale	zotero	ko-KR		chrome/locale/ko-KR/zotero/
 locale  zotero  lt-LT           chrome/locale/lt-LT/zotero/
 #locale	zotero	mn-MN		chrome/locale/mn-MN/zotero/
-#locale	zotero	nb-NO		chrome/locale/nb-NO/zotero/
+locale	zotero	nb-NO		chrome/locale/nb-NO/zotero/
 #locale	zotero	nn-NO		chrome/locale/nn-NO/zotero/
 locale	zotero	nl-NL		chrome/locale/nl-NL/zotero/
 locale	zotero	pl-PL		chrome/locale/pl-PL/zotero/

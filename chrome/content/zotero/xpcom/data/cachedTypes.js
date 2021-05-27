@@ -372,6 +372,7 @@ Zotero.ItemTypes = new function() {
 		// Secondary types
 		_secondaryTypes = yield this._getTypesFromDB(
 			`WHERE display != 0 AND display NOT IN ('${_primaryTypeNames.join("', '")}')`
+			+ " AND name != 'webpage'"
 		);
 		
 		// Hidden types
@@ -442,7 +443,12 @@ Zotero.ItemTypes = new function() {
 			return _customLabels[id];
 		}
 		
-		return Zotero.Schema.globalSchemaLocale.itemTypes[typeName];
+		var label = Zotero.Schema.globalSchemaLocale.itemTypes[typeName];
+		if (!label) {
+			Zotero.logError(`Localized string not available for item type '${typeName}'`);
+			label = Zotero.Utilities.Internal.camelToTitleCase(typeName);
+		}
+		return label;
 	}
 	
 	this.getImageSrc = function (itemType) {

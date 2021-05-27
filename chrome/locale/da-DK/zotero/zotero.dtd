@@ -120,7 +120,7 @@
 <!ENTITY zotero.toolbar.import.label "Importér...">
 <!ENTITY zotero.toolbar.importFromClipboard "Hent fra udklipsholder">
 <!ENTITY zotero.toolbar.export.label "Eksportér bibliotek...">
-<!ENTITY zotero.toolbar.rtfScan.label "RTF-scanning...">
+<!ENTITY zotero.toolbar.rtfScan.label "RTF Scan">
 <!ENTITY zotero.toolbar.timeline.label "Opret tidslinie">
 <!ENTITY zotero.toolbar.preferences.label "Indstillinger...">
 <!ENTITY zotero.toolbar.supportAndDocumentation "Support og dokumentation">
@@ -174,6 +174,9 @@
 
 <!ENTITY zotero.lookup.description "Indtast ISBN'er, DOI'er, PMID'er, eller arXiv ID'er som skal tilføjes til dit bibliotek:">
 <!ENTITY zotero.lookup.button.search "Søg">
+
+<!ENTITY zotero.createParent.title "Create Parent Item">
+<!ENTITY zotero.createParent.button.manual "Manual Entry">
 
 <!ENTITY zotero.selectitems.title "Vælg elementer">
 <!ENTITY zotero.selectitems.intro.label "Vælg de elementer, du ønsker at tilføje til dit bibliotek">

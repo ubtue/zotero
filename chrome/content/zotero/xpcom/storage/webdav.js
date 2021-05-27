@@ -52,7 +52,6 @@ Zotero.Sync.Storage.Mode.WebDAV.prototype = {
 		Zotero.Prefs.set("sync.storage.verified", !!val)
 	},
 	
-	_initialized: false,
 	_parentURI: null,
 	_rootURI: null,	
 	_cachedCredentials: false,
@@ -205,6 +204,7 @@ Zotero.Sync.Storage.Mode.WebDAV.prototype = {
 		var io = Services.io;
 		this._parentURI = io.newURI(url, null, null);
 		this._rootURI = io.newURI(url + "zotero/", null, null);
+		Zotero.HTTP.CookieBlocker.addURL(this._rootURI.spec);
 	},
 	
 	
@@ -242,6 +242,10 @@ Zotero.Sync.Storage.Mode.WebDAV.prototype = {
 	
 	
 	clearCachedCredentials: function() {
+		Zotero.debug("WebDAV: Clearing cached credentials");
+		if (this._rootURI) {
+			Zotero.HTTP.CookieBlocker.removeURL(this._rootURI.spec);
+		}
 		this._rootURI = this._parentURI = undefined;
 		this._cachedCredentials = false;
 	},
@@ -442,7 +446,10 @@ Zotero.Sync.Storage.Mode.WebDAV.prototype = {
 						yield item.saveTx({ skipAll: true });
 						// skipAll doesn't mark as unsynced, so do that separately
 						yield item.updateSynced(false);
-						return new Zotero.Sync.Storage.Result;
+						return new Zotero.Sync.Storage.Result({
+							localChanges: true,
+							syncRequired: true
+						});
 					}
 				}
 				
@@ -459,9 +466,20 @@ Zotero.Sync.Storage.Mode.WebDAV.prototype = {
 				if (smtime != mtime) {
 					let shash = item.attachmentSyncedHash;
 					if (shash && metadata.md5 && shash == metadata.md5) {
-						Zotero.debug("Last synced mod time for item " + item.libraryKey
-							+ " doesn't match time on storage server but hash does -- ignoring");
-						return new Zotero.Sync.Storage.Result;
+						Zotero.debug(`Last synced mod time for item ${item.libraryKey} doesn't `
+							+ "match time on storage server but hash does -- using local file mtime");
+						
+						yield this._setStorageFileMetadata(item);
+						item.attachmentSyncedModificationTime = fmtime;
+						item.attachmentSyncState = "in_sync";
+						yield item.saveTx({ skipAll: true });
+						// skipAll doesn't mark as unsynced, so do that separately
+						yield item.updateSynced(false);
+						
+						return new Zotero.Sync.Storage.Result({
+							localChanges: true,
+							syncRequired: true
+						});
 					}
 					
 					Zotero.logError("Conflict -- last synced file mod time for item "

@@ -20,7 +20,7 @@
 <!ENTITY zotero.general.other "その他...">
 <!ENTITY zotero.general.bigger "Bigger">
 <!ENTITY zotero.general.smaller "Smaller">
-<!ENTITY zotero.general.reset "Reset">
+<!ENTITY zotero.general.reset "リセット">
 
 
 <!ENTITY zotero.errorReport.title "Zotero エラーレポート">
@@ -120,7 +120,7 @@
 <!ENTITY zotero.toolbar.import.label "インポート...">
 <!ENTITY zotero.toolbar.importFromClipboard "クリップボードからインポートする">
 <!ENTITY zotero.toolbar.export.label "ライブラリをエクスポート...">
-<!ENTITY zotero.toolbar.rtfScan.label "RTF スキャン...">
+<!ENTITY zotero.toolbar.rtfScan.label "RTF スキャン">
 <!ENTITY zotero.toolbar.timeline.label "タイムラインを作成">
 <!ENTITY zotero.toolbar.preferences.label "環境設定...">
 <!ENTITY zotero.toolbar.supportAndDocumentation "サポートとヘルプ">
@@ -174,6 +174,9 @@
 
 <!ENTITY zotero.lookup.description "ライブラリに追加するためには ISBN, DOI, PMID, または arXiv ID (複数可) を入力してください。">
 <!ENTITY zotero.lookup.button.search "検索">
+
+<!ENTITY zotero.createParent.title "Create Parent Item">
+<!ENTITY zotero.createParent.button.manual "Manual Entry">
 
 <!ENTITY zotero.selectitems.title "アイテムを選択">
 <!ENTITY zotero.selectitems.intro.label "ライブラリに追加したいアイテムを選択してください">

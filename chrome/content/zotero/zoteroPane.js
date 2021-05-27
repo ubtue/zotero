@@ -55,7 +55,6 @@ var ZoteroPane = new function()
 	this.clearItemsPaneMessage = clearItemsPaneMessage;
 	this.viewSelectedAttachment = viewSelectedAttachment;
 	this.reportErrors = reportErrors;
-	this.displayErrorMessage = displayErrorMessage;
 	
 	this.document = document;
 	
@@ -154,7 +153,7 @@ var ZoteroPane = new function()
 		ZoteroPane_Local.collectionsView = new Zotero.CollectionTreeView();
 		// Handle an error in setTree()/refresh()
 		ZoteroPane_Local.collectionsView.onError = function (e) {
-			ZoteroPane_Local.displayErrorMessage();
+			Zotero.crash();
 		};
 		var collectionsTree = document.getElementById('zotero-collections-tree');
 		collectionsTree.view = ZoteroPane_Local.collectionsView;
@@ -387,7 +386,7 @@ var ZoteroPane = new function()
 		}
 		
 		// If Zotero could not be initialized, display an error message and return
-		if (!Zotero || Zotero.skipLoading) {
+		if (!Zotero || Zotero.skipLoading || Zotero.crashed) {
 			this.displayStartupError();
 			return false;
 		}
@@ -914,7 +913,7 @@ var ZoteroPane = new function()
 			fp.appendFilter(Zotero.getString('fileInterface.OPMLFeedFilter'), '*.opml; *.xml');
 			fp.appendFilters(fp.filterAll);
 			if (await fp.show() == fp.returnOK) {
-				var contents = await Zotero.File.getContentsAsync(fp.file.path);
+				var contents = await Zotero.File.getContentsAsync(fp.file);
 				var success = await Zotero.Feeds.importFromOPML(contents);
 				if (success) {
 					return true;
@@ -1062,6 +1061,11 @@ var ZoteroPane = new function()
 	
 	this.handleTagSelectorResize = Zotero.Utilities.debounce(function() {
 		if (this.tagSelectorShown()) {
+			// Initialize if dragging open after startup
+			if (!this.tagSelector) {
+				this.initTagSelector();
+				this.setTagScope();
+			}
 			this.tagSelector.handleResize();
 		}
 	}, 100);
@@ -1188,10 +1192,19 @@ var ZoteroPane = new function()
 			this.itemsView.onError = function () {
 				// Don't reload last folder, in case that's the problem
 				Zotero.Prefs.clear('lastViewedFolder');
-				ZoteroPane_Local.displayErrorMessage();
+				Zotero.crash();
 			};
-			this.itemsView.onRefresh.addListener(() => this.setTagScope());
-			this.itemsView.onLoad.addListener(() => Zotero.uiIsReady());
+			this.itemsView.onRefresh.addListener(() => {
+				this.setTagScope();
+			});
+			this.itemsView.onLoad.addListener(() => {
+				// Show error if items list couldn't loaded (e.g., bad search), as set in
+				// Zotero.CollectionTreeRow::getSearchResults()
+				if (Zotero.CollectionTreeCache.error) {
+					this.setItemsPaneMessage(Zotero.getString('pane.items.loadError'));
+				}
+				Zotero.uiIsReady();
+			});
 			
 			// If item data not yet loaded for library, load it now.
 			// Other data types are loaded at startup
@@ -1497,7 +1510,7 @@ var ZoteroPane = new function()
 		}.bind(this))()
 		.catch(function (e) {
 			Zotero.logError(e);
-			this.displayErrorMessage();
+			Zotero.crash();
 			throw e;
 		}.bind(this))
 		.finally(function () {
@@ -1641,7 +1654,7 @@ var ZoteroPane = new function()
 			itemIDs.push(items[i].id);
 		}
 		
-		yield Zotero.Fulltext.indexItems(itemIDs, true);
+		yield Zotero.FullText.indexItems(itemIDs, { complete: true });
 		yield document.getElementById('zotero-attachment-box').updateItemIndexedState();
 	});
 	
@@ -2422,7 +2435,7 @@ var ZoteroPane = new function()
 		},
 		{
 			id: "loadReport",
-			oncommand: event => Zotero_Report_Interface.loadCollectionReport(event)
+			oncommand: () => Zotero_Report_Interface.loadCollectionReport()
 		},
 		{
 			id: "emptyTrash",
@@ -2808,24 +2821,12 @@ var ZoteroPane = new function()
 					show.push(m.findPDF, m.sep3);
 				}
 				
-				var canCreateParent = true;
-				for (let i = 0; i < items.length; i++) {
-					let item = items[i];
-					if (!item.isTopLevelItem() || !item.isAttachment() || item.isFeedItem) {
-						canCreateParent = false;
-						break;
-					}
-				}
-				if (canCreateParent) {
-					show.push(m.createParent);
-				}
-				
 				if (canRename) {
 					show.push(m.renameAttachments);
 				}
 				
 				// Add in attachment separator
-				if (canCreateParent || canRecognize || canUnrecognize || canRename || canIndex) {
+				if (canRecognize || canUnrecognize || canRename || canIndex) {
 					show.push(m.sep5);
 				}
 				
@@ -2836,7 +2837,6 @@ var ZoteroPane = new function()
 						if (item.isFileAttachment()) {
 							disable.push(
 								m.moveToTrash,
-								m.createParent,
 								m.renameAttachments
 							);
 							break;
@@ -2985,7 +2985,7 @@ var ZoteroPane = new function()
 		menu.childNodes[m.exportItems].setAttribute('label', Zotero.getString('pane.items.menu.export' + multiple));
 		menu.childNodes[m.createBib].setAttribute('label', Zotero.getString('pane.items.menu.createBib' + multiple));
 		menu.childNodes[m.loadReport].setAttribute('label', Zotero.getString('pane.items.menu.generateReport' + multiple));
-		menu.childNodes[m.createParent].setAttribute('label', Zotero.getString('pane.items.menu.createParent' + multiple));
+		menu.childNodes[m.createParent].setAttribute('label', Zotero.getString('pane.items.menu.createParent'));
 		menu.childNodes[m.recognizePDF].setAttribute('label', Zotero.getString('pane.items.menu.recognizePDF' + multiple));
 		menu.childNodes[m.renameAttachments].setAttribute('label', Zotero.getString('pane.items.menu.renameAttachments' + multiple));
 		menu.childNodes[m.reindexItem].setAttribute('label', Zotero.getString('pane.items.menu.reindexItem' + multiple));
@@ -3287,7 +3287,12 @@ var ZoteroPane = new function()
 				}
 			}
 			
-			this.launchURL(uri);
+			try {
+				Zotero.launchURL(uri);
+			}
+			catch (e) {
+				Zotero.logError(e);
+			}
 		}
 	}
 	
@@ -4004,6 +4009,8 @@ var ZoteroPane = new function()
 				throw new Error("Item " + itemID + " is not an attachment");
 			}
 			
+			Zotero.debug("Viewing attachment " + item.libraryKey);
+			
 			if (item.attachmentLinkMode == Zotero.Attachments.LINK_MODE_LINKED_URL) {
 				this.loadURI(item.getField('url'), event);
 				continue;
@@ -4078,15 +4085,29 @@ var ZoteroPane = new function()
 				}
 			}
 			
-			if (fileExists) {
+			let fileSyncingEnabled = Zotero.Sync.Storage.Local.getEnabledForLibrary(item.libraryID);
+			let redownload = false;
+			
+			// TEMP: If file is queued for download, download first. Starting in 5.0.85, files
+			// modified remotely get marked as SYNC_STATE_FORCE_DOWNLOAD, causing them to get
+			// downloaded at sync time even in download-as-needed mode, but this causes files
+			// modified previously to be downloaded on open.
+			if (fileExists
+					&& !isLinkedFile
+					&& fileSyncingEnabled
+					&& (item.attachmentSyncState == Zotero.Sync.Storage.Local.SYNC_STATE_TO_DOWNLOAD)) {
+				Zotero.debug("File exists but is queued for download -- re-downloading");
+				redownload = true;
+			}
+			
+			if (fileExists && !redownload) {
 				Zotero.debug("Opening " + path);
 				Zotero.Notifier.trigger('open', 'file', item.id);
-				
 				launchFile(path, item.attachmentContentType);
 				continue;
 			}
 			
-			if (isLinkedFile || !Zotero.Sync.Storage.Local.getEnabledForLibrary(item.libraryID)) {
+			if (isLinkedFile || !fileSyncingEnabled) {
 				this.showAttachmentNotFoundDialog(
 					itemID,
 					path,
@@ -4100,7 +4121,10 @@ var ZoteroPane = new function()
 			}
 			
 			try {
-				await Zotero.Sync.Runner.downloadFile(item);
+				let results = await Zotero.Sync.Runner.downloadFile(item);
+				if (!results || !results.localChanges) {
+					Zotero.debug("Download failed -- opening existing file");
+				}
 			}
 			catch (e) {
 				// TODO: show error somewhere else
@@ -4121,12 +4145,11 @@ var ZoteroPane = new function()
 				return;
 			}
 			
-			// check if unchanged?
-			// maybe not necessary, since we'll get an error if there's an error
-			
 			Zotero.Notifier.trigger('redraw', 'item', []);
-			// Retry after download
-			i--;
+			
+			Zotero.debug("Opening " + path);
+			Zotero.Notifier.trigger('open', 'file', item.id);
+			launchFile(path, item.attachmentContentType);
 		}
 	});
 	
@@ -4481,20 +4504,33 @@ var ZoteroPane = new function()
 	};
 	
 	
-	this.createParentItemsFromSelected = Zotero.Promise.coroutine(function* () {
+	this.createParentItemsFromSelected = async function () {
 		if (!this.canEdit()) {
 			this.displayCannotEditLibraryMessage();
 			return;
 		}
 		
-		var items = this.getSelectedItems();
-		for (var i=0; i<items.length; i++) {
-			var item = items[i];
-			if (!item.isTopLevelItem() || item.isRegularItem()) {
-				throw('Item ' + itemID + ' is not a top-level attachment or note in ZoteroPane_Local.createParentItemsFromSelected()');
-			}
-			
-			yield Zotero.DB.executeTransaction(function* () {
+		let item = this.getSelectedItems()[0];
+		if (!item.isAttachment() || !item.isTopLevelItem()) {
+			throw new Error('Item ' + itemID + ' is not a top-level attachment');
+		}
+
+		let io = { dataIn: { item }, dataOut: null };
+		window.openDialog('chrome://zotero/content/createParentDialog.xul', '', 'chrome,modal,centerscreen', io);
+		if (!io.dataOut) {
+			return false;
+		}
+
+		// If we made a parent, attach the child
+		if (io.dataOut.parent) {
+			await Zotero.DB.executeTransaction(function* () {
+				item.parentID = io.dataOut.parent.id;
+				yield item.save();
+			});
+		}
+		// If they clicked manual entry then make a dummy parent
+		else {
+			await Zotero.DB.executeTransaction(function* () {
 				// TODO: remove once there are no top-level web attachments
 				if (item.isWebAttachment()) {
 					var parent = new Zotero.Item('webpage');
@@ -4513,8 +4549,8 @@ var ZoteroPane = new function()
 				yield item.save();
 			});
 		}
-	});
-	
+	};
+
 	
 	this.renameSelectedAttachmentsFromParents = Zotero.Promise.coroutine(function* () {
 		// TEMP: fix
@@ -4744,37 +4780,9 @@ var ZoteroPane = new function()
 					"zotero-error-report", "chrome,centerscreen,modal", io);
 	}
 	
-	/*
-	 * Display an error message saying that an error has occurred and Firefox
-	 * needs to be restarted.
-	 *
-	 * If |popup| is TRUE, display in popup progress window; otherwise, display
-	 * as items pane message
-	 */
-	function displayErrorMessage(popup) {
-		var reportErrorsStr = Zotero.getString('errorReport.reportErrors');
-		var reportInstructions =
-			Zotero.getString('errorReport.reportInstructions', reportErrorsStr)
-		
-		// Display as popup progress window
-		if (popup) {
-			var pw = new Zotero.ProgressWindow();
-			pw.changeHeadline(Zotero.getString('general.errorHasOccurred'));
-			var msg = Zotero.getString('general.pleaseRestart', Zotero.appName) + ' '
-				+ reportInstructions;
-			pw.addDescription(msg);
-			pw.show();
-			pw.startCloseTimer(8000);
-		}
-		// Display as items pane message
-		else {
-			var msg = Zotero.getString('general.errorHasOccurred') + ' '
-				+ Zotero.getString('general.pleaseRestart', Zotero.appName) + '\n\n'
-				+ reportInstructions;
-			self.setItemsPaneMessage(msg, true);
-		}
-		Zotero.debug(msg, 1);
-		Zotero.debug(new Error().stack, 1);
+	this.displayErrorMessage = function (popup) {
+		Zotero.debug("ZoteroPane.displayErrorMessage() is deprecated -- use Zotero.crash() instead");
+		Zotero.crash(popup);
 	}
 	
 	this.displayStartupError = function(asPaneMessage) {
@@ -4803,9 +4811,7 @@ var ZoteroPane = new function()
 			//if(asPaneMessage) {
 			//	ZoteroPane_Local.setItemsPaneMessage(errMsg, true);
 			//} else {
-				var ps = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-										.getService(Components.interfaces.nsIPromptService);
-				ps.alert(null, title, errMsg);
+				Zotero.alert(null, title, errMsg);
 			//}
 		}
 	}
@@ -4917,9 +4923,28 @@ var ZoteroPane = new function()
 		var serializedValues = Zotero.Prefs.get("pane.persist");
 		if(!serializedValues) return;
 		serializedValues = JSON.parse(serializedValues);
+		
+		// Somehow all the columns can end up non-hidden, so fix that if it happens
+		var maxColumns = 30; // 31 as of 4/2020
+		var numColumns = Object.keys(serializedValues)
+			.filter(id => id.startsWith('zotero-items-column-') && serializedValues[id].hidden != "true")
+			.length;
+		var fixColumns = numColumns > maxColumns;
+		if (fixColumns) {
+			Zotero.logError("Repairing corrupted pane.persist");
+		}
+		
 		for(var id in serializedValues) {
 			var el = document.getElementById(id);
 			if(!el) return;
+			
+			// In one case where this happened, all zotero-items-column- elements were present
+			// with just "ordinal" (and no "hidden"), and "zotero-items-tree" was set to
+			// {"current-view-group":"default"}. Clearing only the columns didn't work for some reason.
+			if (fixColumns && (id.startsWith('zotero-items-column-') || id == 'zotero-items-tree')) {
+				continue;
+			}
+			
 			var elValues = serializedValues[id];
 			for(var attr in elValues) {
 				// Ignore persisted collapsed state for collection and item pane splitters, since

@@ -517,11 +517,6 @@ describe("Zotero.Sync.Storage.Mode.WebDAV", function () {
 			yield item.saveTx();
 			var mtime = yield item.attachmentModificationTime;
 			var hash = yield item.attachmentHash;
-			var path = item.getFilePath();
-			var filename = 'test.png';
-			var size = (yield OS.File.stat(path)).size;
-			var contentType = 'image/png';
-			var fileContents = yield Zotero.File.getContentsAsync(path);
 			
 			setResponse({
 				method: "GET",
@@ -537,15 +532,184 @@ describe("Zotero.Sync.Storage.Mode.WebDAV", function () {
 			
 			assertRequestCount(1);
 			
-			assert.isFalse(result.localChanges);
+			assert.isTrue(result.localChanges);
 			assert.isFalse(result.remoteChanges);
-			assert.isFalse(result.syncRequired);
+			assert.isTrue(result.syncRequired);
 			
 			// Check local object
 			assert.equal(item.attachmentSyncedModificationTime, mtime);
 			assert.equal(item.attachmentSyncedHash, hash);
 			assert.isFalse(item.synced);
-		})
+		});
+		
+		it("should skip upload and update mtimes if synced mtime doesn't match WebDAV mtime but file hash does", async function () {
+			var engine = await setup();
+			
+			var file = OS.Path.join(getTestDataDirectory().path, 'test.png');
+			var item = await Zotero.Attachments.importFromFile({ file });
+			await item.saveTx();
+			var fmtime = await item.attachmentModificationTime;
+			var hash = await item.attachmentHash;
+			
+			var mtime = 123456789000;
+			var mtime2 = 123456799000;
+			item.attachmentSyncedModificationTime = mtime;
+			item.attachmentSyncedHash = hash;
+			item.attachmentSyncState = 'to_upload';
+			item.synced = true;
+			await item.saveTx();
+			
+			setResponse({
+				method: "GET",
+				url: `zotero/${item.key}.prop`,
+				status: 200,
+				text: '<properties version="1">'
+					+ `<mtime>${mtime2}</mtime>`
+					+ `<hash>${hash}</hash>`
+					+ '</properties>'
+			});
+			setResponse({
+				method: "PUT",
+				url: `zotero/${item.key}.prop`,
+				status: 204
+			});
+			
+			var result = await engine.start();
+			
+			assertRequestCount(2);
+			
+			assert.isTrue(result.localChanges);
+			assert.isFalse(result.remoteChanges);
+			assert.isTrue(result.syncRequired);
+			
+			// Check local object
+			assert.equal(item.attachmentSyncedModificationTime, fmtime);
+			assert.equal(item.attachmentSyncedHash, hash);
+			assert.isFalse(item.synced);
+		});
+		
+		
+		// As a security measure, Nextcloud sets a regular cookie and two SameSite cookies and
+		// throws a 503 if the regular cookie gets returned without the SameSite cookies.
+		// As of Fx60 (Zotero 5.0.78), which added SameSite support, SameSite cookies don't get
+		// returned properly (because we don't have a load context?), triggering the 503. To avoid
+		// this, we just don't store or send any cookies for WebDAV requests.
+		//
+		// https://forums.zotero.org/discussion/80429/sync-error-in-5-0-80
+		it("shouldn't send cookies", function* () {
+			// Make real requests so we can test the internal cookie-handling behavior
+			Zotero.HTTP.mock = null;
+			controller.verified = true;
+			var engine = yield setup();
+			
+			var library = Zotero.Libraries.userLibrary;
+			library.libraryVersion = 5;
+			yield library.saveTx();
+			library.storageDownloadNeeded = true;
+			
+			var fileName = "test.txt";
+			var item = new Zotero.Item("attachment");
+			item.attachmentLinkMode = 'imported_file';
+			item.attachmentPath = 'storage:' + fileName;
+			var text = Zotero.Utilities.randomString();
+			item.attachmentSyncState = "to_download";
+			yield item.saveTx();
+			
+			// Create ZIP file containing above text file
+			var tmpPath = Zotero.getTempDirectory().path;
+			var tmpID = "webdav_download_" + Zotero.Utilities.randomString();
+			var zipDirPath = OS.Path.join(tmpPath, tmpID);
+			var zipPath = OS.Path.join(tmpPath, tmpID + ".zip");
+			yield OS.File.makeDir(zipDirPath);
+			yield Zotero.File.putContentsAsync(OS.Path.join(zipDirPath, fileName), text);
+			yield Zotero.File.zipDirectory(zipDirPath, zipPath);
+			yield OS.File.removeDir(zipDirPath);
+			var zipContents = yield Zotero.File.getBinaryContentsAsync(zipPath);
+			
+			var mtime = "1441252524905";
+			var md5 = yield Zotero.Utilities.Internal.md5Async(zipPath);
+			
+			yield OS.File.remove(zipPath);
+			
+			// OPTIONS request to cache credentials
+			this.httpd.registerPathHandler(
+				`${davBasePath}zotero/`,
+				{
+					handle: function (request, response) {
+						if (request.method == 'OPTIONS') {
+							// Force Basic Auth
+							if (!request.hasHeader('Authorization')) {
+								response.setStatusLine(null, 401, null);
+								response.setHeader('WWW-Authenticate', 'Basic realm="WebDAV"', false);
+								return;
+							}
+							// Cookie shouldn't be passed
+							if (request.hasHeader('Cookie')) {
+								response.setStatusLine(null, 400, null);
+								return;
+							}
+							response.setHeader('Set-Cookie', 'foo=bar', false);
+							response.setHeader('DAV', '1', false);
+							response.setStatusLine(null, 200, "OK");
+						}
+					}
+				}
+			);
+			this.httpd.registerPathHandler(
+				`${davBasePath}zotero/${item.key}.prop`,
+				{
+					handle: function (request, response) {
+						if (request.method != 'GET') {
+							response.setStatusLine(null, 400, "Bad Request");
+							return;
+						}
+						// An XHR should already include Authorization
+						if (!request.hasHeader('Authorization')) {
+							response.setStatusLine(null, 400, null);
+							return;
+						}
+						// Cookie shouldn't be passed
+						if (request.hasHeader('Cookie')) {
+							response.setStatusLine(null, 400, null);
+							return;
+						}
+						// Set a cookie
+						response.setHeader('Set-Cookie', 'foo=bar', false);
+						response.setStatusLine(null, 200, "OK");
+						response.write('<properties version="1">'
+							+ `<mtime>${mtime}</mtime>`
+							+ `<hash>${md5}</hash>`
+							+ '</properties>');
+					}
+				}
+			);
+			this.httpd.registerPathHandler(
+				`${davBasePath}zotero/${item.key}.zip`,
+				{
+					handle: function (request, response) {
+						// Make sure the cookie isn't returned
+						if (request.hasHeader('Cookie')) {
+							response.setStatusLine(null, 503, "Service Unavailable");
+							return;
+						}
+						// In case nsIWebBrowserPersist doesn't use the cached Authorization
+						if (!request.hasHeader('Authorization')) {
+							response.setStatusLine(null, 401, null);
+							response.setHeader('Set-Cookie', 'foo=bar', false);
+							response.setHeader('WWW-Authenticate', 'Basic realm="WebDAV"', false);
+							return;
+						}
+						response.setStatusLine(null, 200, "OK");
+						response.write(zipContents);
+					}
+				}
+			);
+			
+			yield engine.start();
+			
+			assert.equal(library.storageVersion, library.libraryVersion);
+		});
+		
 		
 		it("should mark item as in conflict if mod time and hash on storage server don't match synced values", function* () {
 			var engine = yield setup();

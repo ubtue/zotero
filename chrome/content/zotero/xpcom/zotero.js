@@ -103,10 +103,14 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 	});
 	
 	/**
+	 * @property {Boolean} crashed - True if the application needs to be restarted
+	 */
+	this.crashed = false;
+	
+	/**
 	 * @property	{Boolean}	closing		True if the application is closing.
 	 */
 	this.closing = false;
-	
 	
 	this.unlockDeferred;
 	this.unlockPromise;
@@ -682,8 +686,6 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			Zotero.locked = false;
 			
 			// Initialize various services
-			Zotero.Integration.init();
-			
 			if(Zotero.Prefs.get("httpServer.enabled")) {
 				Zotero.Server.init();
 			}
@@ -718,10 +720,7 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			yield Zotero.Retractions.init();
 			
 			// Migrate fields from Extra that can be moved to item fields after a schema update
-			//
-			// Disabled for now
-			//
-			//yield Zotero.Schema.migrateExtraFields();
+			yield Zotero.Schema.migrateExtraFields();
 			
 			// Load all library data except for items, which are loaded when libraries are first
 			// clicked on or if otherwise necessary
@@ -896,7 +895,6 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			}
 		} catch(e) {
 			Zotero.logError(e);
-			throw e;
 		}
 	});
 	
@@ -1023,17 +1021,33 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 	
 	
 	/**
-	 * Launch an HTTP URL externally, the best way we can
-	 *
-	 * Used only by Standalone
+	 * Launch a URL externally, the best way we can
 	 */
 	this.launchURL = function (url) {
 		if (!Zotero.Utilities.isHTTPURL(url)) {
 			if (Zotero.Utilities.isHTTPURL(url, true)) {
 				url = 'http://' + url;
 			}
+			// Launch non-HTTP URLs
 			else {
-				throw new Error("launchURL() requires an HTTP(S) URL");
+				let schemeRE = /^([a-z][a-z0-9+.-]+):/;
+				let matches = url.match(schemeRE);
+				if (!matches) {
+					throw new Error(`Invalid URL '${url}'`);
+				}
+				let scheme = matches[1];
+				if (['javascript', 'data', 'chrome', 'resource'].includes(scheme)) {
+					throw new Error(`Invalid scheme '${scheme}'`);
+				}
+				let svc = Components.classes['@mozilla.org/uriloader/external-protocol-service;1']
+					.getService(Components.interfaces.nsIExternalProtocolService);
+				let found = {};
+				let handlerInfo = svc.getProtocolHandlerInfoFromOS(scheme, found);
+				if (!found.value) {
+					throw new Error(`Handler not found for '${scheme}' URLs`);
+				}
+				svc.loadURI(Services.io.newURI(url, null, null));
+				return;
 			}
 		}
 		
@@ -1058,7 +1072,8 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			
 			let exec = Zotero.File.pathToFile(path);
 			if (!exec.exists()) {
-				throw ("Fallback executable not found -- check extensions.zotero." + pref + " in about:config");
+				throw new Error("Fallback executable not found -- "
+					+ "check extensions.zotero." + pref + " in about:config");
 			}
 			
 			var proc = Components.classes["@mozilla.org/process/util;1"]
@@ -1191,6 +1206,57 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 			.getService(Components.interfaces.nsIPromptService);
 		ps.alert(window, title, msg);
 	}
+	
+	
+	/**
+	 * Display an error message saying that an error has occurred and Zotero needs to be restarted.
+	 *
+	 * If |popup| is TRUE, display in popup progress window; otherwise, display as items pane message
+	 */
+	this.crash = function (popup) {
+		this.crashed = true;
+		
+		// Check the database after restart
+		Zotero.Schema.setIntegrityCheckRequired(true).catch(e => this.logError(e));
+		
+		var reportErrorsStr = Zotero.getString('errorReport.reportErrors');
+		var reportInstructions = Zotero.getString('errorReport.reportInstructions', reportErrorsStr);
+		
+		var msg;
+		if (popup) {
+			msg = Zotero.getString('general.pleaseRestart', Zotero.appName) + ' '
+				+ reportInstructions;
+		}
+		else {
+			msg = Zotero.getString('general.errorHasOccurred') + ' '
+				+ Zotero.getString('general.pleaseRestart', Zotero.appName) + '\n\n'
+				+ reportInstructions;
+		}
+		Zotero.logError(msg);
+		Zotero.logError(new Error().stack);
+		
+		this.startupError = msg;
+		this.startupErrorHandler = null;
+		
+		var enumerator = Services.wm.getEnumerator("navigator:browser");
+		while (enumerator.hasMoreElements()) {
+			let win = enumerator.getNext();
+			if (!win.ZoteroPane) continue;
+			
+			// Display as popup progress window
+			if (popup) {
+				var pw = new Zotero.ProgressWindow();
+				pw.changeHeadline(Zotero.getString('general.errorHasOccurred'));
+				pw.addDescription(msg);
+				pw.show();
+				pw.startCloseTimer(8000);
+			}
+			// Display as items pane message
+			else {
+				win.ZoteroPane.setItemsPaneMessage(msg, true);
+			}
+		}
+	};
 	
 	
 	this.getErrors = function (asStrings) {
@@ -1739,7 +1805,7 @@ Services.scriptloader.loadSubScript("resource://zotero/polyfill.js");
 		if (Zotero.isMac && OS.Constants.Path.libDir.includes('AppTranslocation')) {
 			let ps = Services.prompt;
 			let buttonFlags = ps.BUTTON_POS_0 * ps.BUTTON_TITLE_IS_STRING;
-			let index = ps.confirmEx(
+			ps.confirmEx(
 				null,
 				Zotero.getString('general.error'),
 				Zotero.getString('startupError.startedFromDiskImage1', Zotero.clientName)
@@ -2038,7 +2104,7 @@ Zotero.Browser = new function() {
 		// Create a hidden browser
 		var hiddenBrowser = win.document.createElement("browser");
 		hiddenBrowser.setAttribute('type', 'content');
-		hiddenBrowser.setAttribute('disablehistory', 'true');
+		hiddenBrowser.setAttribute('disableglobalhistory', 'true');
 		win.document.documentElement.appendChild(hiddenBrowser);
 		// Disable some features
 		hiddenBrowser.docShell.allowAuth = false;

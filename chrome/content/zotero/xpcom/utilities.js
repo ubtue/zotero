@@ -187,7 +187,8 @@ Zotero.Utilities = {
 	isHTTPURL: function (url, allowNoScheme = false) {
 		// From https://stackoverflow.com/a/3809435
 		var noSchemeRE = /^[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/;
-		return /^https?:\/\//.test(url) || (allowNoScheme && noSchemeRE.test(url));
+		return /^https?:\/\//.test(url)
+			|| (allowNoScheme && !url.startsWith('mailto:') && noSchemeRE.test(url));
 	},
 	
 	/**
@@ -1634,11 +1635,26 @@ Zotero.Utilities = {
 		var isZoteroItem = !!item.setType,
 			zoteroType;
 		
+		if (!cslItem.type) {
+			Zotero.debug(cslItem, 1);
+			throw new Error("No 'type' provided in CSL-JSON");
+		}
+		
 		// Some special cases to help us map item types correctly
 		// This ensures that we don't lose data on import. The fields
 		// we check are incompatible with the alternative item types
 		if (cslItem.type == 'bill' && (cslItem.publisher || cslItem['number-of-volumes'])) {
 			zoteroType = 'hearing';
+		}
+		else if (cslItem.type == 'broadcast'
+				&& (cslItem['archive']
+					|| cslItem['archive_location']
+					|| cslItem['container-title']
+					|| cslItem['event-place']
+					|| cslItem['publisher']
+					|| cslItem['publisher-place']
+					|| cslItem['source'])) {
+			zoteroType = 'tvBroadcast';
 		}
 		else if (cslItem.type == 'book' && cslItem.version) {
 			zoteroType = 'computerProgram';
@@ -1652,11 +1668,13 @@ Zotero.Utilities = {
 					|| cslItem['number-of-volumes'] || cslItem.ISBN)) {
 			zoteroType = 'videoRecording';
 		}
-		else {
-			zoteroType = Zotero.Schema.CSL_TYPE_MAPPINGS_REVERSE[cslItem.type];
+		else if (Zotero.Schema.CSL_TYPE_MAPPINGS_REVERSE[cslItem.type]) {
+			zoteroType = Zotero.Schema.CSL_TYPE_MAPPINGS_REVERSE[cslItem.type][0];
 		}
-		
-		if(!zoteroType) zoteroType = "document";
+		else {
+			Zotero.debug(`Unknown CSL type '${cslItem.type}' -- using 'document'`, 2);
+			zoteroType = "document"
+		}
 		
 		var itemTypeID = Zotero.ItemTypes.getID(zoteroType);
 		if(isZoteroItem) {

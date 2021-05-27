@@ -120,7 +120,7 @@
 <!ENTITY zotero.toolbar.import.label "불러오기...">
 <!ENTITY zotero.toolbar.importFromClipboard "클립보드에서 불러오기">
 <!ENTITY zotero.toolbar.export.label "라이브러리 내보내기...">
-<!ENTITY zotero.toolbar.rtfScan.label "RTF 스캔...">
+<!ENTITY zotero.toolbar.rtfScan.label "RTF 스캔">
 <!ENTITY zotero.toolbar.timeline.label "연표 만들기">
 <!ENTITY zotero.toolbar.preferences.label "환경설정...">
 <!ENTITY zotero.toolbar.supportAndDocumentation "지원 및 도움말">
@@ -174,6 +174,9 @@
 
 <!ENTITY zotero.lookup.description "라이브러리에 추가할 ISBN, DOI, PMID 또는 arXiv ID를 입력하세요:">
 <!ENTITY zotero.lookup.button.search "검색">
+
+<!ENTITY zotero.createParent.title "Create Parent Item">
+<!ENTITY zotero.createParent.button.manual "Manual Entry">
 
 <!ENTITY zotero.selectitems.title "항목 선택">
 <!ENTITY zotero.selectitems.intro.label "라이브러리에 추가하고 싶은 항목 선택">

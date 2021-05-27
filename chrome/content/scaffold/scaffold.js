@@ -514,6 +514,13 @@ var Scaffold = new function() {
 				return;
 			}
 			translate.setDocument(input);
+			
+			// Use cookies from browser pane
+			translate.setCookieSandbox(new Zotero.CookieSandbox(
+				null,
+				_getDocumentURL(input),
+				input.cookie
+			));
 		} else if (functionToRun == "detectImport" || functionToRun == "doImport") {
 			var translate = new Zotero.Translate.Import();
 			translate.setString(input);
@@ -763,7 +770,7 @@ var Scaffold = new function() {
 				_writeTests(JSON.stringify(testObject, null, "\t")); // Don't modify current tests
 				return testObject;
 			} catch (e) {
-				_logOutput("Exception parsing JSON");
+				_logOutput("Exception parsing test JSON:\n\n" + e);
 				return false;
 			}
 		} else {
